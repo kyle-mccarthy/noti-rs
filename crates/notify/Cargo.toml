@@ -18,6 +18,7 @@ handlebars = "4.1"
 anyhow = "1.0"
 mrml = { version = "1.2", features = ["orderedmap"] }
 lazy_static = "1.4"
+notify-macros = { path = "../notify-macros" }
 
 [dev-dependencies]
 pretty_assertions = "0.4"

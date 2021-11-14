@@ -1,9 +1,9 @@
-use std::{any::TypeId, collections::HashMap};
+use std::{any::{Any, TypeId}, collections::HashMap};
 
+use serde::Serialize;
 use uuid::Uuid;
 
 pub mod email;
-pub mod other;
 
 use self::email::{RegisteredEmailTemplate, RenderedEmailTemplate};
 
@@ -80,7 +80,7 @@ impl TemplateId {
     }
 }
 
-pub trait Template: private::Sealed {
+pub trait Template: Any + Serialize {
     fn register(engine: &mut TemplateEngine) -> Result<(), Error>;
 }
 
@@ -91,7 +91,7 @@ pub trait Register {
 }
 
 #[non_exhaustive]
-enum RegisteredTemplate {
+pub enum RegisteredTemplate {
     Email(RegisteredEmailTemplate),
 }
 
@@ -142,14 +142,4 @@ impl<'a> TemplateEngine<'a> {
             }
         }
     }
-}
-
-mod private {
-    use serde::Serialize;
-
-    use super::email::EmailTemplate;
-
-    pub trait Sealed: std::any::Any + Serialize {}
-
-    impl<T: EmailTemplate> Sealed for T {}
 }

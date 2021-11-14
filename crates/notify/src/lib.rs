@@ -1,3 +1,5 @@
+pub use notify_macros::EmailNotification;
+
 pub mod email;
 pub mod template;
 
