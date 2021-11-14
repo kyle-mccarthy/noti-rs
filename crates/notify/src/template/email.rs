@@ -1,18 +1,19 @@
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 
 use lazy_static::lazy_static;
 use mrml::parse;
 use mrml::prelude::render::Options as MrmlRenderOptions;
+use serde::Serialize;
 
 use crate::template::TemplateId;
 
-use super::{Error, RegisteredTemplate, Template, private::Sealed};
+use super::{Error, Register, RegisteredTemplate, Template, TemplateEngine};
 
 lazy_static! {
     static ref DEFAULT_RENDER_OPTIONS: MrmlRenderOptions = MrmlRenderOptions::default();
 }
 
-pub trait EmailTemplate: Sealed {
+pub trait EmailTemplate: Any + Serialize {
     /// Subject to use for emails produced by this template.
     const SUBJECT: &'static str;
     /// HTML template to use for the email template. Can be MJML and handlebars.
@@ -20,6 +21,7 @@ pub trait EmailTemplate: Sealed {
     /// Plain text version of the email template. Can be handlebars.
     const TEXT: Option<&'static str> = None;
 }
+
 
 pub(super) struct RegisteredEmailTemplate {
     pub html: TemplateId,
@@ -77,5 +79,48 @@ impl<T: EmailTemplate> Template for T {
             .insert(type_id, RegisteredTemplate::Email(template));
 
         Ok(())
+    }
+}
+
+mod sealed {
+    use serde::Serialize;
+
+    pub trait Sealed: std::any::Any + Serialize {}
+}
+
+#[cfg(test)]
+mod test_email_templates {
+    use crate::template::TemplateEngine;
+
+    use super::*;
+    use indoc::indoc;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct Person {
+        name: String,
+    }
+
+    impl EmailTemplate for Person {
+        const HTML: &'static str = indoc! {"
+            <mrml>
+                <mj-body>
+                    <mj-section>
+                        <mj-column>
+                            <mj-text>Hello {{ name }}!</mj-text>
+                        </mj-column>
+                    </mj-section>
+                </mj-body>
+            </mrml>
+        "};
+
+        const SUBJECT: &'static str = "Hello {{ name }}!";
+
+        const TEXT: Option<&'static str> = Some("Hello {{ name }}!");
+    }
+
+    #[test]
+    fn test_register_template() {
+        let mut engine = TemplateEngine::new();
     }
 }

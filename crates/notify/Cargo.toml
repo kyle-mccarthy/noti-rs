@@ -16,10 +16,11 @@ chrono = { version = "0.4", features = ["serde"] }
 flume = "0.10"
 handlebars = "4.1"
 anyhow = "1.0"
-mrml = "1.2"
+mrml = { version = "1.2", features = ["orderedmap"] }
 lazy_static = "1.4"
 
 [dev-dependencies]
 pretty_assertions = "0.4"
 tokio = { version = "1.13", features = ["full"] }
+indoc = { version = "1.0" }
 

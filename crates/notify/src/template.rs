@@ -3,7 +3,7 @@ use std::{any::TypeId, collections::HashMap};
 use uuid::Uuid;
 
 pub mod email;
-use email::EmailTemplate;
+pub mod other;
 
 use self::email::{RegisteredEmailTemplate, RenderedEmailTemplate};
 
@@ -84,22 +84,37 @@ pub trait Template: private::Sealed {
     fn register(engine: &mut TemplateEngine) -> Result<(), Error>;
 }
 
+pub trait Register {
+    type Template;
+
+    fn register(&mut self) -> Result<(), Error>;
+}
+
+#[non_exhaustive]
 enum RegisteredTemplate {
     Email(RegisteredEmailTemplate),
 }
 
 /// A template that has been rendered
+#[non_exhaustive]
 pub enum RenderedTemplate {
     /// A rendered EmailTemplate
     Email(RenderedEmailTemplate),
 }
 
+#[derive(Default)]
 pub struct TemplateEngine<'a> {
     engine: handlebars::Handlebars<'a>,
     templates: HashMap<TypeId, RegisteredTemplate>,
 }
 
 impl<'a> TemplateEngine<'a> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Render a template of type `T`. The content's of `T` are the payload/data provided to the
+    /// template.
     pub fn render<T: Template>(&self, data: &T) -> Result<RenderedTemplate, Error> {
         let template = self
             .templates
@@ -125,7 +140,6 @@ impl<'a> TemplateEngine<'a> {
 
                 Ok(RenderedTemplate::Email(rendered))
             }
-            _ => todo!(),
         }
     }
 }
@@ -133,7 +147,7 @@ impl<'a> TemplateEngine<'a> {
 mod private {
     use serde::Serialize;
 
-    use super::EmailTemplate;
+    use super::email::EmailTemplate;
 
     pub trait Sealed: std::any::Any + Serialize {}
 
