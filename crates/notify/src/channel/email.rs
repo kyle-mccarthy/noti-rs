@@ -1,17 +1,35 @@
 use async_trait::async_trait;
-use lettre::{
-    error::Error as EmailError,
-    message::{Mailbox, MultiPart, SinglePart},
-    Message,
-};
+use serde::{Deserialize, Serialize};
 
-use super::Error;
 use crate::template::email::RenderedEmailTemplate;
 
-impl From<EmailError> for Error {
-    fn from(source: EmailError) -> Self {
-        Self::Message(source.into())
-    }
+pub mod smtp;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Invalid email address")]
+    EmailAddress(String),
+
+    #[error("Missing sender")]
+    MissingSender,
+
+    #[error("Unknown error occured")]
+    Unknown(#[source] anyhow::Error),
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+pub struct Email {
+    /// The recipient of the email.
+    pub to: String,
+    /// The sender of the email. This is optional, but the email provider may
+    /// require it if can't accept default senders.
+    pub from: Option<String>,
+    /// Subject to use for the email.
+    pub subject: String,
+    /// HTML version of the email.
+    pub html: String,
+    /// Optional plain text version of the email.
+    pub text: Option<String>,
 }
 
 pub trait EmailNotification {
@@ -19,38 +37,26 @@ pub trait EmailNotification {
     fn to(&self) -> &str;
 
     /// The sender/who send the email
-    fn from(&self) -> &str;
+    fn from(&self) -> Option<&str>;
 
-    /// Optional address to use for the reply to
-    fn reply_to(&self) -> Option<&str> {
-        None
-    }
-
-    fn build(&self, rendered: RenderedEmailTemplate) -> Result<Message, Error> {
-        let to: Mailbox = self.to().parse()?;
-        let from: Mailbox = self.from().parse()?;
-
-        let mut builder = Message::builder()
-            .subject(rendered.subject)
-            .to(to)
-            .from(from);
-
-        if let Some(reply_to) = self.reply_to() {
-            let reply_to: Mailbox = reply_to.parse()?;
-            builder = builder.reply_to(reply_to);
-        }
-
-        if let Some(text) = rendered.text {
-            Ok(builder.multipart(MultiPart::alternative_plain_html(text, rendered.html))?)
-        } else {
-            Ok(builder.singlepart(SinglePart::html(rendered.html))?)
-        }
+    fn build(&self, rendered: RenderedEmailTemplate) -> Result<Email, Error> {
+        Ok(Email {
+            to: self.to().to_string(),
+            from: self.from().map(|from| from.to_string()),
+            subject: rendered.subject,
+            html: rendered.html,
+            text: rendered.text,
+        })
     }
 }
 
 #[async_trait]
 pub trait EmailProvider {
-    async fn send(&self, message: Message) -> Result<(), Error>;
+    fn default_sender(&self) -> Option<&str> {
+        None
+    }
+
+    async fn send(&self, message: Email) -> Result<(), Error>;
 }
 
 #[cfg(test)]
@@ -93,8 +99,8 @@ mod test_email_channel {
             &self.email
         }
 
-        fn from(&self) -> &str {
-            "no-reply@test.com"
+        fn from(&self) -> Option<&str> {
+            Some("no-reply@test.com")
         }
     }
 
