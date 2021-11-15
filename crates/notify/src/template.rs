@@ -1,4 +1,7 @@
-use std::{any::{Any, TypeId}, collections::HashMap};
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+};
 
 use serde::Serialize;
 use uuid::Uuid;
@@ -81,7 +84,7 @@ impl TemplateId {
 }
 
 pub trait Template: Any + Serialize {
-    fn register(engine: &mut TemplateEngine) -> Result<(), Error>;
+    fn register(engine: &mut TemplateManager) -> Result<(), Error>;
 }
 
 pub trait Register {
@@ -95,6 +98,25 @@ pub enum RegisteredTemplate {
     Email(RegisteredEmailTemplate),
 }
 
+impl RegisteredTemplate {
+    pub fn unregister(self, manager: &mut TemplateManager) {
+        match self {
+            Self::Email(email_template) => {
+                manager
+                    .engine
+                    .unregister_template(email_template.html.as_ref());
+                manager
+                    .engine
+                    .unregister_template(email_template.subject.as_ref());
+
+                if let Some(text_id) = email_template.text {
+                    manager.engine.unregister_template(text_id.as_ref());
+                }
+            }
+        }
+    }
+}
+
 /// A template that has been rendered
 #[non_exhaustive]
 pub enum RenderedTemplate {
@@ -102,13 +124,27 @@ pub enum RenderedTemplate {
     Email(RenderedEmailTemplate),
 }
 
+impl RenderedTemplate {
+    pub fn as_email(&self) -> Option<&RenderedEmailTemplate> {
+        match self {
+            Self::Email(email) => Some(email),
+        }
+    }
+
+    pub fn into_email(self) -> Option<RenderedEmailTemplate> {
+        match self {
+            Self::Email(email) => Some(email),
+        }
+    }
+}
+
 #[derive(Default)]
-pub struct TemplateEngine<'a> {
+pub struct TemplateManager<'a> {
     engine: handlebars::Handlebars<'a>,
     templates: HashMap<TypeId, RegisteredTemplate>,
 }
 
-impl<'a> TemplateEngine<'a> {
+impl<'a> TemplateManager<'a> {
     pub fn new() -> Self {
         Self::default()
     }
@@ -141,5 +177,10 @@ impl<'a> TemplateEngine<'a> {
                 Ok(RenderedTemplate::Email(rendered))
             }
         }
+    }
+
+    /// Register a template with the template manager
+    pub fn register<T: Template>(&mut self) -> Result<(), Error> {
+        T::register(self)
     }
 }

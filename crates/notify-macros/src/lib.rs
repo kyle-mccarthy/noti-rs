@@ -11,8 +11,8 @@ pub fn derive_email_notification(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #impl_generics Template for #name #ty_generics #where_clause {
-            fn register(engine: &mut TemplateEngine) -> Result<(), super::Error> {
-                <Self as EmailTemplate>::register(engine)    
+            fn register(manager: &mut TemplateManager) -> Result<(), super::Error> {
+                <Self as EmailTemplate>::register(manager)    
             }
         }
     };
