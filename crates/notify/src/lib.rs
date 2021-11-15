@@ -1,7 +1,6 @@
 pub use notify_macros::EmailNotification;
 use template::TemplateManager;
 
-pub mod email;
 pub mod template;
 pub mod channel;
 
