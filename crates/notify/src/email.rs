@@ -15,16 +15,3 @@ pub struct Email {
     html: String,
     text: Option<String>,
 }
-
-pub trait EmailTemplate {
-    const HTML: &'static str;
-    const TEXT: Option<&'static str> = None;
-}
-
-pub struct RegistrationNotification {
-    user_id: u64,
-}
-
-impl EmailTemplate for RegistrationNotification {
-    const HTML: &'static str = "<mrml>test</mrml>";
-}
