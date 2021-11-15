@@ -1,8 +1,8 @@
 pub use notify_macros::EmailNotification;
 use template::TemplateManager;
 
-pub mod template;
 pub mod channel;
+pub mod template;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
