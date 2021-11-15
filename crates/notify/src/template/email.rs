@@ -1,13 +1,10 @@
 use std::any::TypeId;
 
 use lazy_static::lazy_static;
-use mrml::prelude::render::Options as MrmlRenderOptions;
-use mrml::parse as parse_mrml;
-
-use crate::template::TemplateId;
-
+use mrml::{parse as parse_mrml, prelude::render::Options as MrmlRenderOptions};
 
 use super::{Error, RegisteredTemplate, Template};
+use crate::template::TemplateId;
 
 lazy_static! {
     static ref DEFAULT_RENDER_OPTIONS: MrmlRenderOptions = MrmlRenderOptions::default();
@@ -87,13 +84,15 @@ pub struct RenderedEmailTemplate {
 
 #[cfg(test)]
 mod test_email_templates {
-    use crate::template::{RenderedTemplate, TemplateManager};
-    use crate::EmailNotification;
+    use indoc::indoc;
     use pretty_assertions::assert_eq;
+    use serde::Serialize;
 
     use super::*;
-    use indoc::indoc;
-    use serde::Serialize;
+    use crate::{
+        template::{RenderedTemplate, TemplateManager},
+        EmailNotification,
+    };
 
     #[derive(Serialize, EmailNotification)]
     struct Person {
@@ -102,7 +101,7 @@ mod test_email_templates {
 
     impl EmailTemplate for Person {
         const HTML: &'static str = indoc! {"
-            <mrml>
+            <mjml>
                 <mj-body>
                     <mj-section>
                         <mj-column>
@@ -110,11 +109,9 @@ mod test_email_templates {
                         </mj-column>
                     </mj-section>
                 </mj-body>
-            </mrml>
+            </mjml>
         "};
-
         const SUBJECT: &'static str = "Hello {{ name }}!";
-
         const TEXT: Option<&'static str> = Some("Hello {{ name }}!");
     }
 

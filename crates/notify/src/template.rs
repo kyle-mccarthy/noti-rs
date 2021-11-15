@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 pub mod email;
 
-use self::email::{RegisteredEmailTemplate, RenderedEmailTemplate};
+pub use self::email::{EmailTemplate, RegisteredEmailTemplate, RenderedEmailTemplate};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -87,18 +87,13 @@ pub trait Template: Any + Serialize {
     fn register(engine: &mut TemplateManager) -> Result<(), Error>;
 }
 
-pub trait Register {
-    type Template;
-
-    fn register(&mut self) -> Result<(), Error>;
-}
-
 #[non_exhaustive]
 pub enum RegisteredTemplate {
     Email(RegisteredEmailTemplate),
 }
 
 impl RegisteredTemplate {
+    /// unregister the template from the template manager
     pub fn unregister(self, manager: &mut TemplateManager) {
         match self {
             Self::Email(email_template) => {
@@ -149,8 +144,8 @@ impl<'a> TemplateManager<'a> {
         Self::default()
     }
 
-    /// Render a template of type `T`. The content's of `T` are the payload/data provided to the
-    /// template.
+    /// Render a template of type `T`. The content's of `T` are the payload/data
+    /// provided to the template.
     pub fn render<T: Template>(&self, data: &T) -> Result<RenderedTemplate, Error> {
         let template = self
             .templates
