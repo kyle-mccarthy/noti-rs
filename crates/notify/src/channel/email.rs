@@ -65,29 +65,30 @@ mod test_email_channel {
     };
 
     #[derive(Serialize, EmailNotification)]
-    struct ActivateEmailNotification {
+    struct ActivateAccountNotification {
         email: String,
         first_name: String,
         url: String,
     }
 
-    impl EmailTemplate for ActivateEmailNotification {
-        const HTML: &'static str = indoc! {"
+    impl EmailTemplate for ActivateAccountNotification {
+        const HTML: &'static str = indoc! {r#"
             <mjml>
                 <mj-body>
                     <mj-section>
                         <mj-column>
-                            <mj-text>Hello {{ name }}!</mj-text>
+                            <mj-text>Welcome {{ first_name }}!</mj-text>
+                            <mj-text>To get started, <a href="{{ url }}">activate your account</a>!</mj-text>
                         </mj-column>
                     </mj-section>
                 </mj-body>
             </mjml>
-        "};
-        const SUBJECT: &'static str = "Hello {{ name }}!";
+        "#};
+        const SUBJECT: &'static str = "Active Account";
         const TEXT: Option<&'static str> = Some("Hello {{ name }}!");
     }
 
-    impl EmailNotification for ActivateEmailNotification {
+    impl EmailNotification for ActivateAccountNotification {
         fn to(&self) -> &str {
             &self.email
         }
@@ -99,7 +100,7 @@ mod test_email_channel {
 
     #[test]
     fn test_it_builds_email() {
-        let notification = ActivateEmailNotification {
+        let notification = ActivateAccountNotification {
             email: "test@test.com".to_string(),
             first_name: "Test".to_string(),
             url: "https://google.com".to_string(),
@@ -107,12 +108,12 @@ mod test_email_channel {
 
         let mut templates = TemplateManager::new();
         templates
-            .register::<ActivateEmailNotification>()
-            .expect("should register ActivateEmailNotification");
+            .register::<ActivateAccountNotification>()
+            .expect("should register ActivateAccountNotification");
 
         let rendered = templates
             .render(&notification)
-            .expect("should render ActivateEmailNotification");
+            .expect("should render ActivateAccountNotification");
 
         let rendered = rendered
             .into_email()
