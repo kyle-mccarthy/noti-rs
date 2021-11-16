@@ -21,9 +21,9 @@ lazy_static = "1.4"
 notify-macros = { path = "../notify-macros" }
 lettre = { version = "0.10.0-rc.4", features = ["serde", "tokio1-native-tls"] }
 async-trait = "0.1"
+tokio = { version = "1.13", features = ["test-util", "sync"] }
 
 [dev-dependencies]
-tokio = { version = "1.13", features = ["full"] }
 pretty_assertions = "0.4"
 indoc = { version = "1.0" }
 

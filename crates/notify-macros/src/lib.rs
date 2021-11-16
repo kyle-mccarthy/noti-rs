@@ -38,6 +38,54 @@ pub fn derive_email_notification(input: proc_macro::TokenStream) -> proc_macro::
     proc_macro::TokenStream::from(expanded)
 }
 
+#[proc_macro_derive(EmailProvider)]
+pub fn derive_channel_for_email_provider(
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let name = input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let crate_name = find_crate();
+
+    let channel_type = quote!(#crate_name::channel::ChannelType);
+    let email_channel_type = quote!(#crate_name::channel::ChannelType::Email);
+    let channel = quote!(#crate_name::channel::Channel);
+    let provider = quote!(#crate_name::channel::email::EmailProvider);
+    let message = quote!(#crate_name::channel::Message);
+
+    let error = quote!(#crate_name::channel::Error);
+
+    let expanded = quote! {
+        #[async_trait::async_trait]
+        impl #impl_generics #channel for #name #ty_generics #where_clause {
+            fn channel_type(&self) -> &'static #channel_type {
+                &#email_channel_type
+            }
+
+            async fn send(&self, message: #message) -> Result<(), #error> {
+                let message_channel = message.channel();
+
+                if message_channel != self.channel_type() {
+                    return Err(#error::InvalidMessageChannel { expected: self.channel_type(), found: message_channel });
+                }
+
+                // safety: we verified the type of the channel above, so we should be able to
+                // safely unwrap it.
+                let email = message.into_email().unwrap();
+
+                <Self as #provider>::send(self, email).await?;
+
+                Ok(())
+            }
+
+        }
+    };
+
+    proc_macro::TokenStream::from(expanded)
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

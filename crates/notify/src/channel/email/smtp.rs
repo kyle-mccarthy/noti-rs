@@ -13,6 +13,7 @@ impl From<AddressError> for Error {
     }
 }
 
+#[derive(notify_macros::EmailProvider)]
 pub struct SmtpTransport {
     default_sender: Option<String>,
     transport: AsyncSmtpTransport<Tokio1Executor>,
@@ -20,8 +21,8 @@ pub struct SmtpTransport {
 
 #[async_trait]
 impl EmailProvider for SmtpTransport {
-    fn default_sender(&self) -> Option<&str> {
-        self.default_sender.as_deref()
+    fn default_sender(&self) -> Option<String> {
+        self.default_sender.clone()
     }
 
     async fn send(&self, message: Email) -> Result<(), Error> {
@@ -29,7 +30,7 @@ impl EmailProvider for SmtpTransport {
 
         let from: Mailbox = message
             .from
-            .or_else(|| self.default_sender().map(|from| from.to_string()))
+            .or_else(|| self.default_sender())
             .ok_or(Error::MissingSender)?
             .parse()?;
 
@@ -46,8 +47,10 @@ impl EmailProvider for SmtpTransport {
 
         let message = result.map_err(|source| Error::Unknown(source.into()))?;
 
-        // TODO handle error
-        self.transport.send(message).await;
+        self.transport
+            .send(message)
+            .await
+            .map_err(|e| Error::SendFailed(e.into()))?;
 
         Ok(())
     }

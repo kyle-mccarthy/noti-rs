@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::template::email::RenderedEmailTemplate;
 
+pub mod memory;
 pub mod smtp;
 
 #[derive(Debug, thiserror::Error)]
@@ -12,6 +13,9 @@ pub enum Error {
 
     #[error("Missing sender")]
     MissingSender,
+
+    #[error("Error occured when sending the message")]
+    SendFailed(#[source] anyhow::Error),
 
     #[error("Unknown error occured")]
     Unknown(#[source] anyhow::Error),
@@ -32,17 +36,18 @@ pub struct Email {
     pub text: Option<String>,
 }
 
+#[mockall::automock]
 pub trait EmailNotification {
     /// The recipient/who to send the email to
-    fn to(&self) -> &str;
+    fn to(&self) -> String;
 
     /// The sender/who send the email
-    fn from(&self) -> Option<&str>;
+    fn from(&self) -> Option<String>;
 
     fn build(&self, rendered: RenderedEmailTemplate) -> Result<Email, Error> {
         Ok(Email {
-            to: self.to().to_string(),
-            from: self.from().map(|from| from.to_string()),
+            to: self.to(),
+            from: self.from(),
             subject: rendered.subject,
             html: rendered.html,
             text: rendered.text,
@@ -52,7 +57,7 @@ pub trait EmailNotification {
 
 #[async_trait]
 pub trait EmailProvider {
-    fn default_sender(&self) -> Option<&str> {
+    fn default_sender(&self) -> Option<String> {
         None
     }
 
@@ -95,12 +100,12 @@ mod test_email_channel {
     }
 
     impl EmailNotification for ActivateAccountNotification {
-        fn to(&self) -> &str {
-            &self.email
+        fn to(&self) -> String {
+            self.email.clone()
         }
 
-        fn from(&self) -> Option<&str> {
-            Some("no-reply@test.com")
+        fn from(&self) -> Option<String> {
+            Some("no-reply@test.com".to_string())
         }
     }
 
