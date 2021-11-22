@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use lettre::address::AddressError;
-use uuid::Uuid;
+
+use crate::message::Message;
 
 pub mod email;
 
@@ -29,39 +30,9 @@ pub enum ChannelType {
     Email,
 }
 
-pub struct MessageId(Uuid);
-
-pub enum Message {
-    Email(email::Email),
-}
-
-impl Message {
-    pub fn as_email(&self) -> Option<&email::Email> {
-        match self {
-            Self::Email(email) => Some(email),
-        }
-    }
-
-    pub fn into_email(self) -> Option<email::Email> {
-        match self {
-            Self::Email(email) => Some(email),
-        }
-    }
-
-    pub fn channel(&self) -> &'static ChannelType {
-        match self {
-            Self::Email(_) => &ChannelType::Email,
-        }
-    }
-}
-
 #[async_trait]
 pub trait Channel {
     fn channel_type(&self) -> &'static ChannelType;
-
-    // async fn before_send(&self, message: Message) -> Result<Option<Message>, Error> {
-    //     Ok(Some(message))
-    // }
 
     async fn send(&self, message: Message) -> Result<(), Error>;
 }

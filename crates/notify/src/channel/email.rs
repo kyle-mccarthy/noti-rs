@@ -1,7 +1,6 @@
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 
-use crate::template::email::RenderedEmailTemplate;
+use crate::message::email::Email;
 
 pub mod memory;
 pub mod smtp;
@@ -21,40 +20,6 @@ pub enum Error {
     Unknown(#[source] anyhow::Error),
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
-pub struct Email {
-    /// The recipient of the email.
-    pub to: String,
-    /// The sender of the email. This is optional, but the email provider may
-    /// require it if can't accept default senders.
-    pub from: Option<String>,
-    /// Subject to use for the email.
-    pub subject: String,
-    /// HTML version of the email.
-    pub html: String,
-    /// Optional plain text version of the email.
-    pub text: Option<String>,
-}
-
-#[mockall::automock]
-pub trait EmailNotification {
-    /// The recipient/who to send the email to
-    fn to(&self) -> String;
-
-    /// The sender/who send the email
-    fn from(&self) -> Option<String>;
-
-    fn build(&self, rendered: RenderedEmailTemplate) -> Result<Email, Error> {
-        Ok(Email {
-            to: self.to(),
-            from: self.from(),
-            subject: rendered.subject,
-            html: rendered.html,
-            text: rendered.text,
-        })
-    }
-}
-
 #[async_trait]
 pub trait EmailProvider {
     fn default_sender(&self) -> Option<String> {
@@ -65,21 +30,19 @@ pub trait EmailProvider {
 }
 
 #[cfg(test)]
-mod test_email_channel {
+mod test_utils {
     use indoc::indoc;
     use serde::Serialize;
 
-    use super::EmailNotification;
     use crate::{
-        template::{email::EmailTemplate, TemplateManager},
-        EmailNotification,
+        notification::EmailNotification, template::email::EmailTemplate, EmailNotification, Notify,
     };
 
     #[derive(Serialize, EmailNotification)]
-    struct ActivateAccountNotification {
-        email: String,
-        first_name: String,
-        url: String,
+    pub struct ActivateAccountNotification {
+        pub email: String,
+        pub first_name: String,
+        pub url: String,
     }
 
     impl EmailTemplate for ActivateAccountNotification {
@@ -95,7 +58,7 @@ mod test_email_channel {
                 </mj-body>
             </mjml>
         "#};
-        const SUBJECT: &'static str = "Active Account";
+        const SUBJECT: &'static str = "Activate Your Account";
         const TEXT: Option<&'static str> = Some("Hello {{ name }}!");
     }
 
@@ -108,6 +71,22 @@ mod test_email_channel {
             Some("no-reply@test.com".to_string())
         }
     }
+
+    pub fn create_instance() -> Notify<'static> {
+        let mut instance = Notify::default();
+
+        instance
+            .register_template::<ActivateAccountNotification>()
+            .expect("failed to register the template");
+
+        instance
+    }
+}
+
+#[cfg(test)]
+mod test_email_channel {
+    use super::test_utils::ActivateAccountNotification;
+    use crate::{notification::EmailNotification, template::TemplateManager};
 
     #[test]
     fn test_it_builds_email() {
@@ -131,7 +110,5 @@ mod test_email_channel {
             .expect("should be RenderedEmailTemplate");
 
         let email = notification.build(rendered);
-
-        assert!(email.is_ok());
     }
 }

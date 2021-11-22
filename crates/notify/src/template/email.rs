@@ -90,6 +90,7 @@ mod test_email_templates {
 
     use super::*;
     use crate::{
+        notification::EmailNotification,
         template::{RenderedTemplate, TemplateManager},
         EmailNotification,
     };
@@ -113,6 +114,12 @@ mod test_email_templates {
         "};
         const SUBJECT: &'static str = "Hello {{ name }}!";
         const TEXT: Option<&'static str> = Some("Hello {{ name }}!");
+    }
+
+    impl EmailNotification for Person {
+        fn to(&self) -> String {
+            unimplemented!()
+        }
     }
 
     #[test]

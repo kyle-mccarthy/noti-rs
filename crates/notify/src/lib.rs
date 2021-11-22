@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 use channel::ChannelType;
+use notification::Notification;
 pub use notify_macros::{EmailNotification, EmailProvider};
 use template::{Template, TemplateManager};
 
 pub mod channel;
+pub mod message;
 pub mod notification;
 pub mod template;
 
@@ -15,6 +17,9 @@ pub enum Error {
 
     #[error("{0:?}")]
     Channel(#[from] channel::Error),
+
+    #[error("No provider has been registered for this channel")]
+    MissingProvider(&'static ChannelType),
 }
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
@@ -34,10 +39,20 @@ impl<'a> Notify<'a> {
     pub fn register_template<T: Template>(&mut self) -> Result<(), Error> {
         Ok(self.templates.register::<T>()?)
     }
-}
 
-pub trait RegisterProvider<T> {
-    fn register_provider(&mut self, provider: T);
+    pub async fn send<T: Notification>(&self, notification: T) -> Result<(), Error> {
+        let channel = self
+            .channels
+            .get(T::CHANNEL_TYPE)
+            .ok_or(Error::MissingProvider(T::CHANNEL_TYPE))?;
+
+        let rendered_template = self.templates.render(&notification)?;
+        let message = notification.into_message(rendered_template);
+
+        channel.send(message).await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

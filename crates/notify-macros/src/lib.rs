@@ -27,10 +27,29 @@ pub fn derive_email_notification(input: proc_macro::TokenStream) -> proc_macro::
     let email_template = quote!(#crate_name::template::EmailTemplate);
     let error = quote!(#crate_name::template::Error);
 
+    let rendered_template_type = quote!(#crate_name::template::RenderedTemplate);
+
+    let notification_trait = quote!(#crate_name::notification::Notification);
+    let email_notification_trait = quote!(#crate_name::notification::EmailNotification);
+
+    let message = quote!(#crate_name::message::Message);
+
+    let channel_type = quote!(#crate_name::channel::ChannelType);
+    let email_channel_type = quote!(#crate_name::channel::ChannelType::Email);
+
     let expanded = quote! {
         impl #impl_generics #template for #name #ty_generics #where_clause {
             fn register(manager: &mut #template_manager) -> Result<(), #error> {
                 <Self as #email_template>::register(manager)
+            }
+        }
+
+        impl #impl_generics #notification_trait for #name #ty_generics #where_clause {
+            const CHANNEL_TYPE: &'static #channel_type = &#email_channel_type;
+
+            fn into_message(self, rendered_template: #rendered_template_type) -> #message {
+                let rendered = rendered_template.into_email().expect("Rendered template was not the expected type");
+                <Self as #email_notification_trait>::build(&self, rendered).into_message()
             }
         }
     };
