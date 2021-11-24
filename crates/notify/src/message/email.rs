@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use super::Message;
-
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Email {
     /// The recipient of the email.
@@ -15,10 +13,4 @@ pub struct Email {
     pub html: String,
     /// Optional plain text version of the email.
     pub text: Option<String>,
-}
-
-impl Email {
-    pub fn into_message(self) -> Message {
-        Message::Email(self)
-    }
 }
