@@ -3,7 +3,7 @@ use serde::Serialize;
 use super::{
     manager::Manager, Error, RegisteredTemplate, Render, RenderedTemplate, Template, TemplateId,
 };
-use crate::channel::ChannelType;
+use crate::{channel::ChannelType, message::email::EmailContents};
 
 pub struct EmailTemplate<'a> {
     pub subject: &'a str,
@@ -14,8 +14,8 @@ pub struct EmailTemplate<'a> {
 impl<'a> super::sealed::Sealed for EmailTemplate<'a> {}
 
 impl<'a> Template for EmailTemplate<'a> {
-    fn channel(&self) -> &ChannelType {
-        &ChannelType::Email
+    fn channel(&self) -> ChannelType {
+        ChannelType::Email
     }
 
     fn register(&self, manager: &mut Manager) -> Result<RegisteredTemplate, Error> {
@@ -62,7 +62,7 @@ impl Render for RegisteredEmailTemplate {
             None
         };
 
-        Ok(RenderedTemplate::Email(RenderedEmailTemplate {
+        Ok(RenderedTemplate::Email(EmailContents {
             subject,
             html,
             text,

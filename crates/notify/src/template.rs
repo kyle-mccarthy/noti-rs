@@ -1,4 +1,4 @@
-use crate::channel::ChannelType;
+use crate::{channel::ChannelType, message::email::EmailContents};
 
 pub mod email;
 pub mod manager;
@@ -19,7 +19,7 @@ pub enum Error {
 }
 
 pub trait Template: sealed::Sealed {
-    fn channel(&self) -> &ChannelType;
+    fn channel(&self) -> ChannelType;
 
     fn register(&self, manager: &mut Manager) -> Result<RegisteredTemplate, Error>;
 }
@@ -51,8 +51,40 @@ pub enum RegisteredTemplate {
     Email(email::RegisteredEmailTemplate),
 }
 
+impl sealed::Sealed for RegisteredTemplate {}
+
+impl Render for RegisteredTemplate {
+    fn render<T: Serialize>(
+        &self,
+        manager: &mut Manager,
+        data: &T,
+    ) -> Result<RenderedTemplate, Error> {
+        match self {
+            Self::Email(tmpl) => tmpl.render(manager, data),
+        }
+    }
+}
+
 pub enum RenderedTemplate {
-    Email(email::RenderedEmailTemplate),
+    Email(EmailContents),
+}
+
+impl RenderedTemplate {
+    pub fn is_email(&self) -> bool {
+        matches!(self, Self::Email(_))
+    }
+
+    pub fn as_email(&self) -> Option<&EmailContents> {
+        match self {
+            Self::Email(email) => Some(email),
+        }
+    }
+
+    pub fn into_email(self) -> Option<EmailContents> {
+        match self {
+            Self::Email(email) => Some(email),
+        }
+    }
 }
 
 mod sealed {

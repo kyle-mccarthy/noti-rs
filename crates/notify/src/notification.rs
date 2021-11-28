@@ -1,7 +1,12 @@
 use std::any::Any;
 
-use crate::template::Template;
+use serde::Serialize;
 
-pub trait Notification: Any {
-    type Template: Template;
+mod manager;
+pub use manager::Manager;
+
+pub trait Notification: Any + Serialize {
+    type Id;
+
+    fn id() -> Self::Id;
 }
