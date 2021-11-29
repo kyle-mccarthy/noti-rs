@@ -15,18 +15,21 @@ pub mod smtp;
 pub enum Error {
     #[error("Unexpected channel type (expected {expected}, found {found})")]
     ChannelType {
+        context: &'static str,
         expected: ChannelType,
         found: ChannelType,
     },
 
-    #[error("The channel type of the message's contents did not match the type expected by the provider. (expected {expected}, found {found})")]
-    InvalidContents {
-        expected: ChannelType,
-        found: ChannelType,
-    },
+    #[error("The contact is not valid for this provider. {0}")]
+    Contact(String),
 
-    #[error("An unexpected error occurred while creating the message. {0}")]
-    Message(crate::channel::Error),
+    #[error("The message is not valid for this provider. {0}")]
+    Message(String),
+
+    #[error("The provider failed to send the message. {0}")]
+    Send(anyhow::Error),
+    /* #[error("An unexpected error occurred while creating the message. {0}")]
+     * Message(crate::channel::Error), */
 }
 
 #[async_trait]
@@ -54,12 +57,13 @@ pub trait Provider: Any {
     ) -> Result<Message, Error> {
         let contents_channel_type = contents.channel_type();
         let contents =
-            Self::Channel::downcast_contents(contents).ok_or_else(|| Error::InvalidContents {
+            Self::Channel::downcast_contents(contents).ok_or_else(|| Error::ChannelType {
+                context: "failed to downcast the messages contents",
                 expected: self.channel_type(),
                 found: contents_channel_type,
             })?;
 
-        let message = Self::Channel::create_message(contact, contents).map_err(Error::Message)?;
+        let message = Self::Channel::create_message(contact, contents)?;
 
         Ok(Self::Channel::upcast_message(message))
     }
@@ -86,6 +90,7 @@ impl DynProvider {
             Self::Email(provider) => {
                 if !message.is_email() {
                     return Err(Error::ChannelType {
+                        context: "The message's channel type is not valid for this provider",
                         expected: ChannelType::Email,
                         found: message.channel_type(),
                     });

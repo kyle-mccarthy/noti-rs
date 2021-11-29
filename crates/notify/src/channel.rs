@@ -1,15 +1,9 @@
 use std::fmt::Display;
 
-use crate::{contact::Contact, message::Message, template::RenderedTemplate};
+use crate::{contact::Contact, message::Message, provider::Error, template::RenderedTemplate};
 
 pub mod email;
 pub use email::EmailChannel;
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Channel failed to create the message")]
-    Message(String),
-}
 
 pub trait Channel: sealed::Sealed {
     type Message;

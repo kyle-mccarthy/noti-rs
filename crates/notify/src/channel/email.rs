@@ -21,7 +21,7 @@ impl Channel for EmailChannel {
     fn create_message(contact: &Contact, contents: Self::Contents) -> Result<Self::Message, Error> {
         let to = contact
             .email()
-            .ok_or_else(|| Error::Message("Contact missing required email field.".to_string()))?;
+            .ok_or_else(|| Error::Contact("Contact missing required email field.".to_string()))?;
 
         Ok(Email::new(to.to_string(), contents))
     }

@@ -47,7 +47,7 @@ impl<'a> Notify<'a> {
             .map_err(Error::Template)?;
 
         if let Some(_old_template) = self.notifications.set_template::<N>(channel, template) {
-            // TODO: remove the old/replaced template from the template manager
+            // TOD: remove the old/replaced template from the template manager
         }
 
         Ok(())
