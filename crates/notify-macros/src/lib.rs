@@ -70,7 +70,7 @@ pub fn derive_channel_for_email_provider(
 
     let channel_type = quote!(#crate_name::channel::ChannelType);
     let email_channel_type = quote!(#crate_name::channel::ChannelType::Email);
-    let channel = quote!(#crate_name::channel::Channel);
+    let channel = quote!(#crate_name::channel::Channel2);
     let provider = quote!(#crate_name::channel::email::EmailProvider);
     let message = quote!(#crate_name::channel::Message);
 

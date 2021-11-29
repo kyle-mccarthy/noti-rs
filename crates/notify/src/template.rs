@@ -1,181 +1,90 @@
-use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-};
-
-use serde::Serialize;
-use uuid::Uuid;
+use crate::{channel::ChannelType, message::email::EmailContents};
 
 pub mod email;
+pub mod manager;
 
-pub use self::email::{EmailTemplate, RegisteredEmailTemplate, RenderedEmailTemplate};
+use manager::Manager;
+use serde::Serialize;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Failed to parse the template: {0:?}")]
-    Parser(String),
+    #[error("Error while running channel specific parser")]
+    PreParse(anyhow::Error),
 
-    #[error("Failed to parse the handlebars template: {reason}")]
-    Template {
-        reason: String,
-        line_number: Option<usize>,
-        column_number: Option<usize>,
-        source: handlebars::TemplateError,
-    },
+    #[error("Error while parsing the template: {0:?}")]
+    Parse(#[from] handlebars::TemplateError),
 
-    #[error("A template for `T` has not been registered")]
-    UnknownTemplate,
-
-    #[error("Failed to render the template: {description}")]
-    Render {
-        description: String,
-        line_number: Option<usize>,
-        column_number: Option<usize>,
-        source: handlebars::RenderError,
-    },
+    #[error("Failed to render the template: {0:?}")]
+    Render(#[from] handlebars::RenderError),
 }
 
-impl From<handlebars::TemplateError> for Error {
-    fn from(source: handlebars::TemplateError) -> Self {
-        let reason = source.reason.to_string();
+pub trait Template: sealed::Sealed {
+    fn channel(&self) -> ChannelType;
 
-        Self::Template {
-            reason,
-            line_number: source.line_no,
-            column_number: source.column_no,
-            source,
-        }
-    }
+    fn register(&self, manager: &mut Manager) -> Result<RegisteredTemplate, Error>;
 }
 
-impl From<handlebars::RenderError> for Error {
-    fn from(source: handlebars::RenderError) -> Self {
-        let description = source.desc.to_string();
-
-        Self::Render {
-            description,
-            line_number: source.line_no,
-            column_number: source.column_no,
-            source,
-        }
-    }
+pub trait Render: sealed::Sealed {
+    fn render<T: Serialize>(&self, manager: &Manager, data: &T) -> Result<RenderedTemplate, Error>;
 }
 
-#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Hash)]
-/// ID for a registered template.
 pub struct TemplateId(String);
+
+impl TemplateId {
+    pub fn new() -> Self {
+        let id = uuid::Uuid::new_v4().to_simple().to_string();
+        Self(id)
+    }
+}
 
 impl Default for TemplateId {
     fn default() -> Self {
-        Self(Uuid::new_v4().to_hyphenated().to_string())
+        Self::new()
     }
 }
 
-impl AsRef<str> for TemplateId {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl TemplateId {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-pub trait Template: Any + Serialize {
-    fn register(engine: &mut TemplateManager) -> Result<(), Error>;
-}
-
-#[non_exhaustive]
 pub enum RegisteredTemplate {
-    Email(RegisteredEmailTemplate),
+    Email(email::RegisteredEmailTemplate),
 }
 
-impl RegisteredTemplate {
-    /// unregister the template from the template manager
-    pub fn unregister(self, manager: &mut TemplateManager) {
-        match self {
-            Self::Email(email_template) => {
-                manager
-                    .engine
-                    .unregister_template(email_template.html.as_ref());
-                manager
-                    .engine
-                    .unregister_template(email_template.subject.as_ref());
+impl sealed::Sealed for RegisteredTemplate {}
 
-                if let Some(text_id) = email_template.text {
-                    manager.engine.unregister_template(text_id.as_ref());
-                }
-            }
+impl Render for RegisteredTemplate {
+    fn render<T: Serialize>(&self, manager: &Manager, data: &T) -> Result<RenderedTemplate, Error> {
+        match self {
+            Self::Email(tmpl) => tmpl.render(manager, data),
         }
     }
 }
 
-/// A template that has been rendered
-#[non_exhaustive]
 pub enum RenderedTemplate {
-    /// A rendered EmailTemplate
-    Email(RenderedEmailTemplate),
+    Email(EmailContents),
 }
 
 impl RenderedTemplate {
-    pub fn as_email(&self) -> Option<&RenderedEmailTemplate> {
+    pub fn is_email(&self) -> bool {
+        matches!(self, Self::Email(_))
+    }
+
+    pub fn as_email(&self) -> Option<&EmailContents> {
         match self {
             Self::Email(email) => Some(email),
         }
     }
 
-    pub fn into_email(self) -> Option<RenderedEmailTemplate> {
+    pub fn into_email(self) -> Option<EmailContents> {
         match self {
             Self::Email(email) => Some(email),
         }
     }
-}
 
-#[derive(Default)]
-pub struct TemplateManager<'a> {
-    engine: handlebars::Handlebars<'a>,
-    templates: HashMap<TypeId, RegisteredTemplate>,
-}
-
-impl<'a> TemplateManager<'a> {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Render a template of type `T`. The content's of `T` are the payload/data
-    /// provided to the template.
-    pub fn render<T: Template>(&self, data: &T) -> Result<RenderedTemplate, Error> {
-        let template = self
-            .templates
-            .get(&TypeId::of::<T>())
-            .ok_or(Error::UnknownTemplate)?;
-
-        match template {
-            RegisteredTemplate::Email(template) => {
-                let html = self.engine.render(template.html.as_ref(), &data)?;
-                let subject = self.engine.render(template.subject.as_ref(), &data)?;
-
-                let mut text = None;
-
-                if let Some(text_id) = &template.text {
-                    text = Some(self.engine.render(text_id.as_ref(), &data)?);
-                }
-
-                let rendered = RenderedEmailTemplate {
-                    html,
-                    text,
-                    subject,
-                };
-
-                Ok(RenderedTemplate::Email(rendered))
-            }
+    pub fn channel_type(&self) -> ChannelType {
+        match self {
+            Self::Email(_) => ChannelType::Email,
         }
     }
+}
 
-    /// Register a template with the template manager
-    pub fn register<T: Template>(&mut self) -> Result<(), Error> {
-        T::register(self)
-    }
+mod sealed {
+    pub trait Sealed {}
 }

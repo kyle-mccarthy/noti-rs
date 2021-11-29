@@ -22,6 +22,7 @@ notify-macros = { path = "../notify-macros" }
 lettre = { version = "0.10.0-rc.4", features = ["serde", "tokio1", "tokio1-native-tls"] }
 async-trait = "0.1"
 tokio = { version = "1.13", features = ["full"] }
+futures = "0.3"
 
 [dev-dependencies]
 pretty_assertions = "0.4"

@@ -1,38 +1,44 @@
-use async_trait::async_trait;
-use lettre::address::AddressError;
+use std::fmt::Display;
 
-use crate::message::Message;
+use crate::{contact::Contact, message::Message, provider::Error, template::RenderedTemplate};
 
 pub mod email;
+pub use email::EmailChannel;
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Failed to build the message: {0:?}")]
-    Message(anyhow::Error),
+pub trait Channel: sealed::Sealed {
+    type Message;
+    type Contents;
 
-    #[error("Failed to parse the address: {0:?}")]
-    Address(#[from] AddressError),
+    /// The channel's type
+    fn channel_type() -> ChannelType;
 
-    #[error("Email channel encountered")]
-    Email(#[from] email::Error),
+    /// Returns true if the channel can create a message for the given contact
+    /// and message contents
+    fn can_create_message(contact: &Contact, contents: &RenderedTemplate) -> bool;
 
-    #[error(
-        "Channel received message of incorrect type: (expected {expected:?}, found {found:?})"
-    )]
-    InvalidMessageChannel {
-        found: &'static ChannelType,
-        expected: &'static ChannelType,
-    },
+    /// Create a message for the given contact and message contents.
+    fn create_message(contact: &Contact, contents: Self::Contents) -> Result<Self::Message, Error>;
+
+    fn downcast_contents(contents: RenderedTemplate) -> Option<Self::Contents>;
+
+    fn upcast_message(message: Self::Message) -> Message;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ChannelType {
     Email,
 }
 
-#[async_trait]
-pub trait Channel {
-    fn channel_type(&self) -> &'static ChannelType;
+impl Display for ChannelType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Email => f.write_str("Email"),
+        }
+    }
+}
 
-    async fn send(&self, message: Message) -> Result<(), Error>;
+mod sealed {
+    pub trait Sealed {}
+
+    impl Sealed for super::EmailChannel {}
 }
