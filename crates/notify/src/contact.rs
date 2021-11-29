@@ -1,17 +1,17 @@
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Contact {
-    Email(EmailContact),
+    Person(PersonContact),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ContactType {
-    Email,
+    Person,
 }
 
 impl ContactType {
     pub fn is_email(&self) -> bool {
         match self {
-            Self::Email => true,
+            Self::Person => true,
         }
     }
 }
@@ -19,37 +19,39 @@ impl ContactType {
 impl Contact {
     pub fn has_email(&self) -> bool {
         match self {
-            Self::Email(_) => true,
+            Self::Person(_) => true,
         }
     }
 
     pub fn email(&self) -> Option<&String> {
         match self {
-            Self::Email(EmailContact { email, .. }) => Some(email),
+            Self::Person(PersonContact { email, .. }) => Some(email),
         }
     }
 
     pub fn contact_type(&self) -> ContactType {
         match self {
-            Self::Email(_) => ContactType::Email,
+            Self::Person(_) => ContactType::Person,
         }
     }
 
     pub fn is_email(&self) -> bool {
         match self {
-            Self::Email(_) => true,
+            Self::Person(_) => true,
         }
     }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EmailContact {
+pub struct PersonContact {
     name: Option<String>,
     email: String,
 }
 
-impl EmailContact {
-    // const CONTACT_TYPE: ContactType = ContactType::Email;
+impl PersonContact {
+    pub fn new(email: String, name: Option<String>) -> Self {
+        Self { email, name }
+    }
 
     /// Set the email contact's name.
     pub fn set_name(&mut self, name: Option<String>) {
@@ -69,5 +71,9 @@ impl EmailContact {
     /// Get a reference to the email contact's email.
     pub fn email(&self) -> &str {
         self.email.as_ref()
+    }
+
+    pub fn into_contact(self) -> Contact {
+        Contact::Person(self)
     }
 }

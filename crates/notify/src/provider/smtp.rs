@@ -13,6 +13,19 @@ pub struct SmtpProvider {
     transport: AsyncSmtpTransport<Tokio1Executor>,
 }
 
+impl SmtpProvider {
+    pub fn new(transport: AsyncSmtpTransport<Tokio1Executor>) -> Self {
+        Self {
+            transport,
+            default_sender: None,
+        }
+    }
+
+    pub fn set_default_sender(&mut self, default_sender: String) {
+        self.default_sender = Some(default_sender);
+    }
+}
+
 #[async_trait]
 impl Provider for SmtpProvider {
     type Channel = EmailChannel;

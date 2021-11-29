@@ -59,7 +59,7 @@ impl<'a> Notify<'a> {
 
     pub async fn send<N: Notification>(
         &self,
-        to: Contact,
+        to: &Contact,
         notification: N,
     ) -> Result<usize, Error> {
         let templates = self
@@ -85,10 +85,10 @@ impl<'a> Notify<'a> {
         // each one
         let messages = message_contents
             .into_iter()
-            .filter(|(provider, contents)| provider.can_create_message(&to, &contents))
+            .filter(|(provider, contents)| provider.can_create_message(to, contents))
             .map(|(provider, contents)| {
                 let message = provider
-                    .create_message(&to, contents)
+                    .create_message(to, contents)
                     .map_err(Error::MessageCreation)?;
                 Ok((provider, message))
             })
