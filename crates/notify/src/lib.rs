@@ -27,16 +27,17 @@ pub enum Error {
     Template(template::Error),
 
     #[error("The notification hasn't been registered: {0:?}")]
-    NotRegistered(TypeId),
+    UnknownNotification(TypeId),
 
     #[error("Failed to create the message")]
-    MessageCreation(provider::Error),
+    Message(provider::Error),
 
     #[error("Provider encountered an error while sending the message")]
     Send(provider::Error),
 }
 
 impl<'a> Notify<'a> {
+    /// Registers a template T for notification N
     pub fn register_template<N: Notification, T: Template>(
         &mut self,
         template: T,
@@ -53,10 +54,13 @@ impl<'a> Notify<'a> {
         Ok(())
     }
 
+    /// Register a new provider P
     pub fn register_provider<P: Provider>(&mut self, provider: P) {
         self.providers.register(provider)
     }
 
+    /// Sends a notification to the channels associated with N for the
+    /// registered templates
     pub async fn send<N: Notification>(
         &self,
         to: &Contact,
@@ -65,7 +69,7 @@ impl<'a> Notify<'a> {
         let templates = self
             .notifications
             .get_templates(&notification)
-            .ok_or_else(|| Error::NotRegistered(notification.type_id()))?;
+            .ok_or_else(|| Error::UnknownNotification(notification.type_id()))?;
 
         // iterate over the notification's templates and render each one
         let message_contents = templates
@@ -89,7 +93,7 @@ impl<'a> Notify<'a> {
             .map(|(provider, contents)| {
                 let message = provider
                     .create_message(to, contents)
-                    .map_err(Error::MessageCreation)?;
+                    .map_err(Error::Message)?;
                 Ok((provider, message))
             })
             .collect::<Result<Vec<(&provider::DynProvider, message::Message)>, Error>>()?;

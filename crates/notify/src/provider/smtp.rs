@@ -77,7 +77,7 @@ impl Provider for SmtpProvider {
         "smtp-provider"
     }
 
-    fn into_dyn_provider(self) -> DynProvider {
+    fn upcast(self) -> DynProvider {
         DynProvider::Email(Box::new(self))
     }
 }

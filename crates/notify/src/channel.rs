@@ -19,8 +19,11 @@ pub trait Channel: sealed::Sealed {
     /// Create a message for the given contact and message contents.
     fn create_message(contact: &Contact, contents: Self::Contents) -> Result<Self::Message, Error>;
 
+    /// Attempts to downcast/convert the rendered template's contents into the
+    /// type expected by the Channel
     fn downcast_contents(contents: RenderedTemplate) -> Option<Self::Contents>;
 
+    /// Upcasts/converts the channel's message type into a generalized Message
     fn upcast_message(message: Self::Message) -> Message;
 }
 

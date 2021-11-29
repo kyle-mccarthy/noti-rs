@@ -13,6 +13,9 @@ pub mod smtp;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Returned when the channel type doesn't match what is expected. The
+    /// context field contains additional information about the cause of the
+    /// error.
     #[error("Unexpected channel type (expected {expected}, found {found})")]
     ChannelType {
         context: &'static str,
@@ -20,36 +23,48 @@ pub enum Error {
         found: ChannelType,
     },
 
+    /// Returned when the contact doesn't contain an expected field or the
+    /// field's value isn't valid for the provider.
     #[error("The contact is not valid for this provider. {0}")]
     Contact(String),
 
+    /// Returned when the message's contents are invalid for the provider.
     #[error("The message is not valid for this provider. {0}")]
     Message(String),
 
+    /// Returned when the actual sending action for the provider fails.
+    /// Typically contains an Error to the underlying provider
+    /// implementation.
     #[error("The provider failed to send the message. {0}")]
     Send(anyhow::Error),
-    /* #[error("An unexpected error occurred while creating the message. {0}")]
-     * Message(crate::channel::Error), */
 }
 
 #[async_trait]
 pub trait Provider: Any {
     type Channel: Channel;
 
+    /// Attempts to send the message, errors on failure.
     async fn send(&self, message: <Self::Channel as Channel>::Message) -> Result<(), Error>;
 
+    /// Identifier associated with the provider. It's helpful for this to be
+    /// relatively human readable. (.e.x "smtp-email-provider")
+    fn id(&self) -> &str;
+
+    /// Casts the provider into a DynProvider.
+    fn upcast(self) -> DynProvider;
+
+    /// Returns the provider's channel type
     fn channel_type(&self) -> ChannelType {
         <Self::Channel as Channel>::channel_type()
     }
 
-    fn id(&self) -> &str;
-
-    fn into_dyn_provider(self) -> DynProvider;
-
+    /// Returns true if the provider can create a message with the contact and
+    /// contents
     fn can_create_message(&self, contact: &Contact, contents: &RenderedTemplate) -> bool {
         Self::Channel::can_create_message(contact, contents)
     }
 
+    /// Attempts to create message from the contact and contents.
     fn create_message(
         &self,
         contact: &Contact,
@@ -85,6 +100,8 @@ pub enum DynProvider {
 }
 
 impl DynProvider {
+    /// Attempts to send the message to the provider. Fails if the provider's
+    /// channel type doesn't match the message's channel type.
     pub async fn send(&self, message: Message) -> Result<(), Error> {
         match self {
             Self::Email(provider) => {
@@ -108,18 +125,22 @@ impl DynProvider {
         }
     }
 
+    /// Returns the channel type of the provider.
     pub fn channel_type(&self) -> ChannelType {
         match self {
             Self::Email(provider) => provider.channel_type(),
         }
     }
 
+    /// Returns true if the provider can create a message for the contact and
+    /// contents.
     pub fn can_create_message(&self, contact: &Contact, contents: &RenderedTemplate) -> bool {
         match self {
             Self::Email(provider) => provider.can_create_message(contact, contents),
         }
     }
 
+    /// Attempts to create a message with for the contact and contents.
     pub fn create_message(
         &self,
         contact: &Contact,
@@ -139,7 +160,7 @@ pub struct Manager {
 impl Manager {
     pub fn register<P: Provider + 'static>(&mut self, provider: P) {
         let channel_type = provider.channel_type();
-        let provider: DynProvider = provider.into_dyn_provider();
+        let provider: DynProvider = provider.upcast();
         self.providers.insert(channel_type, provider);
     }
 

@@ -6,8 +6,11 @@ use super::{
 use crate::{channel::ChannelType, message::email::EmailContents};
 
 pub struct EmailTemplate<'a> {
+    /// The template for the email's subject.
     pub subject: &'a str,
+    /// The template for the email's HTML content. Preprased as mjml.
     pub html: &'a str,
+    /// The optional template for the email's plain text content.
     pub text: Option<&'a str>,
 }
 
