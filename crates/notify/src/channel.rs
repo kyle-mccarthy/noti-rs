@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{contact::Contact, template::RenderedTemplate};
+use crate::{contact::Contact, message::Message, template::RenderedTemplate};
 
 pub mod email;
 pub use email::EmailChannel;
@@ -15,11 +15,19 @@ pub trait Channel: sealed::Sealed {
     type Message;
     type Contents;
 
+    /// The channel's type
     fn channel_type() -> ChannelType;
 
-    fn can_create_message(contact: &Contact, template: &RenderedTemplate) -> bool;
+    /// Returns true if the channel can create a message for the given contact
+    /// and message contents
+    fn can_create_message(contact: &Contact, contents: &RenderedTemplate) -> bool;
 
-    fn create_message(contact: Contact, template: Self::Contents) -> Result<Self::Message, Error>;
+    /// Create a message for the given contact and message contents.
+    fn create_message(contact: &Contact, contents: Self::Contents) -> Result<Self::Message, Error>;
+
+    fn downcast_contents(contents: RenderedTemplate) -> Option<Self::Contents>;
+
+    fn upcast_message(message: Self::Message) -> Message;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -37,5 +45,6 @@ impl Display for ChannelType {
 
 mod sealed {
     pub trait Sealed {}
+
     impl Sealed for super::EmailChannel {}
 }

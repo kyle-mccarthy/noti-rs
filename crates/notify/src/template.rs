@@ -25,11 +25,7 @@ pub trait Template: sealed::Sealed {
 }
 
 pub trait Render: sealed::Sealed {
-    fn render<T: Serialize>(
-        &self,
-        manager: &mut Manager,
-        data: &T,
-    ) -> Result<RenderedTemplate, Error>;
+    fn render<T: Serialize>(&self, manager: &Manager, data: &T) -> Result<RenderedTemplate, Error>;
 }
 
 pub struct TemplateId(String);
@@ -54,11 +50,7 @@ pub enum RegisteredTemplate {
 impl sealed::Sealed for RegisteredTemplate {}
 
 impl Render for RegisteredTemplate {
-    fn render<T: Serialize>(
-        &self,
-        manager: &mut Manager,
-        data: &T,
-    ) -> Result<RenderedTemplate, Error> {
+    fn render<T: Serialize>(&self, manager: &Manager, data: &T) -> Result<RenderedTemplate, Error> {
         match self {
             Self::Email(tmpl) => tmpl.render(manager, data),
         }
@@ -83,6 +75,12 @@ impl RenderedTemplate {
     pub fn into_email(self) -> Option<EmailContents> {
         match self {
             Self::Email(email) => Some(email),
+        }
+    }
+
+    pub fn channel_type(&self) -> ChannelType {
+        match self {
+            Self::Email(_) => ChannelType::Email,
         }
     }
 }

@@ -1,7 +1,11 @@
+use std::any::TypeId;
+
 use contact::Contact;
+use futures::stream::{self, StreamExt, TryStreamExt};
+use message::Message;
 use notification::Notification;
-use provider::Provider;
-use template::Template;
+use provider::{DynProvider, Provider};
+use template::{Render, RenderedTemplate, Template};
 
 pub mod channel;
 pub mod contact;
@@ -21,6 +25,15 @@ pub struct Notify<'a> {
 pub enum Error {
     #[error("Template error: {0:?}")]
     Template(template::Error),
+
+    #[error("The notification hasn't been registered: {0:?}")]
+    NotRegistered(TypeId),
+
+    #[error("Failed to create the message")]
+    MessageCreation(provider::Error),
+
+    #[error("Provider encountered an error while sending the message")]
+    Send(provider::Error),
 }
 
 impl<'a> Notify<'a> {
@@ -44,8 +57,55 @@ impl<'a> Notify<'a> {
         self.providers.register(provider)
     }
 
-    pub async fn send<N: Notification>(&self, _to: Contact, _notification: N) -> Result<(), Error> {
-        todo!()
+    pub async fn send<N: Notification>(
+        &self,
+        to: Contact,
+        notification: N,
+    ) -> Result<usize, Error> {
+        let templates = self
+            .notifications
+            .get_templates(&notification)
+            .ok_or_else(|| Error::NotRegistered(notification.type_id()))?;
+
+        // iterate over the notification's templates and render each one
+        let message_contents = templates
+            .filter_map(|(channel_type, template)| {
+                let provider = self.providers.get_provider(*channel_type)?;
+                Some((provider, template))
+            })
+            .map(|(provider, template)| {
+                let contents = template
+                    .render(&self.templates, &notification)
+                    .map_err(Error::Template)?;
+                Ok((provider, contents)) as Result<_, Error>
+            })
+            .collect::<Result<Vec<(&provider::DynProvider, RenderedTemplate)>, Error>>()?;
+
+        // iterate over the rendered templates/message contents, producing a message for
+        // each one
+        let messages = message_contents
+            .into_iter()
+            .filter(|(provider, contents)| provider.can_create_message(&to, &contents))
+            .map(|(provider, contents)| {
+                let message = provider
+                    .create_message(&to, contents)
+                    .map_err(Error::MessageCreation)?;
+                Ok((provider, message))
+            })
+            .collect::<Result<Vec<(&provider::DynProvider, message::Message)>, Error>>()?;
+
+        // send all the messages
+        let out: Result<Vec<()>, Error> = stream::iter(messages.into_iter())
+            .then(|(provider, message): (&DynProvider, Message)| async {
+                provider.send(message).await.map_err(Error::Send)?;
+                Ok(())
+            })
+            .try_collect()
+            .await;
+
+        let messages_sent = out?.len();
+
+        Ok(messages_sent)
     }
 }
 

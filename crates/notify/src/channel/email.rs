@@ -1,7 +1,10 @@
 use super::{Channel, ChannelType, Error};
 use crate::{
     contact::Contact,
-    message::email::{Email, EmailContents},
+    message::{
+        email::{Email, EmailContents},
+        Message,
+    },
     template::RenderedTemplate,
 };
 
@@ -15,21 +18,23 @@ impl Channel for EmailChannel {
         ChannelType::Email
     }
 
-    fn create_message(contact: Contact, template: Self::Contents) -> Result<Self::Message, Error> {
-        todo!()
+    fn create_message(contact: &Contact, contents: Self::Contents) -> Result<Self::Message, Error> {
+        let to = contact
+            .email()
+            .ok_or_else(|| Error::Message("Contact missing required email field.".to_string()))?;
+
+        Ok(Email::new(to.to_string(), contents))
     }
 
     fn can_create_message(contact: &Contact, template: &RenderedTemplate) -> bool {
-        contact.has_email() && template.is_email()
+        contact.is_email() && template.is_email()
+    }
+
+    fn downcast_contents(contents: RenderedTemplate) -> Option<Self::Contents> {
+        contents.into_email()
+    }
+
+    fn upcast_message(message: Self::Message) -> crate::message::Message {
+        Message::Email(message)
     }
 }
-
-// pub struct EmailChannel(Arc<dyn EmailProvider>);
-
-// pub trait EmailProvider {
-//     fn send(&self, message: Email) -> Result<(), Error>;
-// }
-
-// impl Channel for EmailChannel {
-//     type Message = Email;
-// }

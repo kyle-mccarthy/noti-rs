@@ -51,7 +51,7 @@ impl super::sealed::Sealed for RegisteredEmailTemplate {}
 impl Render for RegisteredEmailTemplate {
     fn render<T: Serialize>(
         &self,
-        manager: &mut Manager,
+        manager: &Manager,
         data: &T,
     ) -> Result<super::RenderedTemplate, Error> {
         let subject = manager.render(&self.subject, data)?;

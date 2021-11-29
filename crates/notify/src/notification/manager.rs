@@ -45,10 +45,6 @@ impl Manager {
     }
 }
 
-enum RegisteredNotification {
-    Email(Option<RegisteredTemplate>),
-}
-
 #[derive(Default)]
 struct NotificationConfig {
     templates: HashMap<ChannelType, RegisteredTemplate>,

@@ -4,7 +4,9 @@ use async_trait::async_trait;
 
 use crate::{
     channel::{Channel, ChannelType},
+    contact::Contact,
     message::Message,
+    template::RenderedTemplate,
 };
 
 pub mod smtp;
@@ -16,6 +18,15 @@ pub enum Error {
         expected: ChannelType,
         found: ChannelType,
     },
+
+    #[error("The channel type of the message's contents did not match the type expected by the provider. (expected {expected}, found {found})")]
+    InvalidContents {
+        expected: ChannelType,
+        found: ChannelType,
+    },
+
+    #[error("An unexpected error occurred while creating the message. {0}")]
+    Message(crate::channel::Error),
 }
 
 #[async_trait]
@@ -31,6 +42,27 @@ pub trait Provider: Any {
     fn id(&self) -> &str;
 
     fn into_dyn_provider(self) -> DynProvider;
+
+    fn can_create_message(&self, contact: &Contact, contents: &RenderedTemplate) -> bool {
+        Self::Channel::can_create_message(contact, contents)
+    }
+
+    fn create_message(
+        &self,
+        contact: &Contact,
+        contents: RenderedTemplate,
+    ) -> Result<Message, Error> {
+        let contents_channel_type = contents.channel_type();
+        let contents =
+            Self::Channel::downcast_contents(contents).ok_or_else(|| Error::InvalidContents {
+                expected: self.channel_type(),
+                found: contents_channel_type,
+            })?;
+
+        let message = Self::Channel::create_message(contact, contents).map_err(Error::Message)?;
+
+        Ok(Self::Channel::upcast_message(message))
+    }
 }
 
 #[async_trait]
@@ -74,6 +106,22 @@ impl DynProvider {
     pub fn channel_type(&self) -> ChannelType {
         match self {
             Self::Email(provider) => provider.channel_type(),
+        }
+    }
+
+    pub fn can_create_message(&self, contact: &Contact, contents: &RenderedTemplate) -> bool {
+        match self {
+            Self::Email(provider) => provider.can_create_message(contact, contents),
+        }
+    }
+
+    pub fn create_message(
+        &self,
+        contact: &Contact,
+        contents: RenderedTemplate,
+    ) -> Result<Message, Error> {
+        match self {
+            Self::Email(provider) => provider.create_message(contact, contents),
         }
     }
 }
