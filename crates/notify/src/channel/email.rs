@@ -31,7 +31,7 @@ impl Channel for EmailChannel {
     /// Checks if an Email can be created based on the Contact and contents of
     /// the rendered Template
     fn can_create_message(contact: &Contact, template: &RenderedTemplate) -> bool {
-        contact.is_email() && template.is_email()
+        contact.has_email() && template.is_email()
     }
 
     /// Attempts to downcast the contents of the rendered template into the

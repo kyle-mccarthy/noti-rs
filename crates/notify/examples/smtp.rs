@@ -1,7 +1,7 @@
 use indoc::indoc;
 use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor};
 use notify::{
-    contact::PersonContact, notification::Notification, provider::smtp::SmtpProvider,
+    contact::Contact, notification::Notification, provider::smtp::SmtpProvider,
     template::email::EmailTemplate, Notify,
 };
 use serde::Serialize;
@@ -69,7 +69,10 @@ pub async fn main() {
         .register_template::<NewAccountNotification, EmailTemplate>(email_template)
         .unwrap();
 
-    let contact = PersonContact::new("test@test.com".to_string(), None).into_contact();
+    let contact = Contact {
+        email: Some("test@test.com".to_string()),
+        ..Default::default()
+    };
 
     let notification = NewAccountNotification {
         activation_url: "https://example.com/activate?code=123".to_string(),
