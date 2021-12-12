@@ -1,7 +1,6 @@
-use std::{
-    any::TypeId,
-    collections::{hash_map::Iter, HashMap},
-};
+use std::{any::TypeId, collections::HashMap};
+
+use fixed_map::{map::Iter, Map};
 
 use super::Notification;
 use crate::{channel::ChannelType, template::RegisteredTemplate};
@@ -30,7 +29,7 @@ impl Manager {
     ) -> Option<&RegisteredTemplate> {
         self.notifications
             .get(&notification.type_id())
-            .map(|item| item.templates.get(&channel))
+            .map(|item| item.templates.get(channel))
             .flatten()
     }
 
@@ -47,5 +46,5 @@ impl Manager {
 
 #[derive(Default)]
 struct NotificationConfig {
-    templates: HashMap<ChannelType, RegisteredTemplate>,
+    templates: Map<ChannelType, RegisteredTemplate>,
 }

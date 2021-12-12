@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use super::{
-    manager::Manager, Error, RegisteredTemplate, Render, RenderedTemplate, Template, TemplateId,
+    store::TemplateStore, Error, RegisteredTemplate, Render, RenderedTemplate, Template, TemplateId,
 };
 use crate::{channel::ChannelType, message::email::EmailContents};
 
@@ -21,16 +21,16 @@ impl<'a> Template for EmailTemplate<'a> {
         ChannelType::Email
     }
 
-    fn register(&self, manager: &mut Manager) -> Result<RegisteredTemplate, Error> {
-        let subject = manager.register(self.subject)?;
+    fn register(&self, store: &mut TemplateStore) -> Result<RegisteredTemplate, Error> {
+        let subject = store.register(self.subject)?;
 
         let html = mrml::parse(self.html)
             .map_err(|e| Error::PreParse(anyhow::Error::msg(e.to_string())))?
             .to_string();
-        let html = manager.register(&html)?;
+        let html = store.register(&html)?;
 
         let text = if let Some(text) = &self.text {
-            Some(manager.register(text)?)
+            Some(store.register(text)?)
         } else {
             None
         };
@@ -54,13 +54,13 @@ impl super::sealed::Sealed for RegisteredEmailTemplate {}
 impl Render for RegisteredEmailTemplate {
     fn render<T: Serialize>(
         &self,
-        manager: &Manager,
+        store: &TemplateStore,
         data: &T,
     ) -> Result<super::RenderedTemplate, Error> {
-        let subject = manager.render(&self.subject, data)?;
-        let html = manager.render(&self.html, data)?;
+        let subject = store.render(&self.subject, data)?;
+        let html = store.render(&self.html, data)?;
         let text = if let Some(text) = &self.text {
-            Some(manager.render(text, data)?)
+            Some(store.render(text, data)?)
         } else {
             None
         };

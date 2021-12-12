@@ -3,11 +3,11 @@ use serde::Serialize;
 use super::{Error, TemplateId};
 
 #[derive(Default)]
-pub struct Manager<'a> {
-    engine: handlebars::Handlebars<'a>,
+pub struct TemplateStore {
+    engine: handlebars::Handlebars<'static>,
 }
 
-impl<'a> Manager<'a> {
+impl TemplateStore {
     pub(crate) fn register(&mut self, template: &str) -> Result<TemplateId, Error> {
         let id = TemplateId::new();
 

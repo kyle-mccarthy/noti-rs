@@ -1,10 +1,10 @@
 use crate::{channel::ChannelType, message::email::EmailContents};
 
 pub mod email;
-pub mod manager;
+pub mod store;
 
-use manager::Manager;
 use serde::Serialize;
+use store::TemplateStore;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -24,12 +24,16 @@ pub trait Template: sealed::Sealed {
 
     /// Registers the template with the Manager. Returns the RegisteredTemplate
     /// on success and Error on failure.
-    fn register(&self, manager: &mut Manager) -> Result<RegisteredTemplate, Error>;
+    fn register(&self, store: &mut TemplateStore) -> Result<RegisteredTemplate, Error>;
 }
 
 pub trait Render: sealed::Sealed {
     /// Attempts to render the template using the Manager and data.
-    fn render<T: Serialize>(&self, manager: &Manager, data: &T) -> Result<RenderedTemplate, Error>;
+    fn render<T: Serialize>(
+        &self,
+        manager: &TemplateStore,
+        data: &T,
+    ) -> Result<RenderedTemplate, Error>;
 }
 
 pub struct TemplateId(String);
@@ -54,7 +58,7 @@ pub enum RegisteredTemplate {
 impl sealed::Sealed for RegisteredTemplate {}
 
 impl Render for RegisteredTemplate {
-    fn render<T: Serialize>(&self, manager: &Manager, data: &T) -> Result<RenderedTemplate, Error> {
+    fn render<T: Serialize>(&self, manager: &TemplateStore, data: &T) -> Result<RenderedTemplate, Error> {
         match self {
             Self::Email(tmpl) => tmpl.render(manager, data),
         }

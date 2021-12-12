@@ -1,12 +1,14 @@
 use std::any::Any;
 
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 mod manager;
 pub use manager::Manager;
 
-pub trait Notification: Any + Serialize {
-    type Id;
+use crate::id::Id;
+
+pub trait Notification: Any + Serialize + DeserializeOwned {
+    type Id: Id;
 
     fn id() -> Self::Id;
 }

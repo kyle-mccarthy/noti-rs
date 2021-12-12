@@ -9,16 +9,20 @@ use template::{Render, RenderedTemplate, Template};
 
 pub mod channel;
 pub mod contact;
+pub mod dispatch;
+pub mod id;
 pub mod message;
 pub mod notification;
+pub mod notify;
 pub mod provider;
 pub mod template;
 
 #[derive(Default)]
-pub struct Notify<'a> {
-    templates: template::manager::Manager<'a>,
+pub struct Notify {
+    templates: template::store::TemplateStore,
     notifications: notification::Manager,
     providers: provider::Manager,
+    // contacts: Option<Box<dyn ContactRepository<Id = ContactId>>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -36,7 +40,7 @@ pub enum Error {
     Send(provider::Error),
 }
 
-impl<'a> Notify<'a> {
+impl Notify {
     /// Registers a template T for notification N
     pub fn register_template<N: Notification, T: Template>(
         &mut self,
@@ -74,7 +78,7 @@ impl<'a> Notify<'a> {
         // iterate over the notification's templates and render each one
         let message_contents = templates
             .filter_map(|(channel_type, template)| {
-                let provider = self.providers.get_provider(*channel_type)?;
+                let provider = self.providers.get_provider(channel_type)?;
                 Some((provider, template))
             })
             .map(|(provider, template)| {
@@ -116,25 +120,28 @@ impl<'a> Notify<'a> {
 #[cfg(test)]
 mod test {
     use indoc::indoc;
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
 
-    use crate::{notification::Notification, template::email::EmailTemplate, Notify};
+    use crate::{
+        notification::{Notification, NotificationId},
+        template::email::EmailTemplate,
+        Notify,
+    };
 
     pub enum Notifications {
         NewAccountNotification,
     }
 
-    #[derive(Serialize)]
+    #[derive(Serialize, Deserialize)]
     pub struct NewAccountNotification {
         name: String,
         activation_url: String,
     }
 
     impl Notification for NewAccountNotification {
-        type Id = Notifications;
-
-        fn id() -> Self::Id {
-            Notifications::NewAccountNotification
+        fn id() -> NotificationId {
+            // "new_account_notification".into()
+            1.into()
         }
     }
 

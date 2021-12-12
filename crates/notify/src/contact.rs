@@ -1,3 +1,10 @@
+use crate::id::Id;
+
+pub mod repository;
+
+// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// pub struct ContactId(pub Id);
+
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Contact {
     pub name: Option<String>,
@@ -30,3 +37,26 @@ impl Contact {
         self.email = Some(email);
     }
 }
+
+// pub struct EmailAddress {
+//     pub name: String,
+//     pub address: String,
+// }
+
+// pub struct PhoneNumber(String);
+
+// pub struct DeviceId(String);
+
+// pub trait Notifiable {
+//     fn email(&self) -> Option<EmailAddress> {
+//         None
+//     }
+
+//     fn phone_number(&self) -> Option<PhoneNumber> {
+//         None
+//     }
+
+//     fn device_id(&self) -> Option<DeviceId> {
+//         None
+//     }
+// }

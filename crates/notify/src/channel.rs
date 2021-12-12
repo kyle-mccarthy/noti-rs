@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use fixed_map::Key;
+
 use crate::{contact::Contact, message::Message, provider::Error, template::RenderedTemplate};
 
 pub mod email;
@@ -27,7 +29,7 @@ pub trait Channel: sealed::Sealed {
     fn upcast_message(message: Self::Message) -> Message;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Key)]
 pub enum ChannelType {
     Email,
 }
