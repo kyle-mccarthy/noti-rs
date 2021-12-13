@@ -1,7 +1,8 @@
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub trait Id:
     std::fmt::Debug
+    + std::fmt::Display
     + Clone
     + Copy
     + PartialEq
@@ -10,12 +11,13 @@ pub trait Id:
     + Ord
     + std::hash::Hash
     + Serialize
-    + DeserializeOwned
+    + Deserialize<'static>
 {
 }
 
 impl<T> Id for T where
     T: std::fmt::Debug
+        + std::fmt::Display
         + Clone
         + Copy
         + PartialEq
@@ -24,7 +26,7 @@ impl<T> Id for T where
         + Ord
         + std::hash::Hash
         + Serialize
-        + DeserializeOwned
+        + Deserialize<'static>
 {
 }
 

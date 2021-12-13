@@ -2,6 +2,7 @@ use std::any::TypeId;
 
 use contact::Contact;
 use futures::stream::{self, StreamExt, TryStreamExt};
+use id::Id;
 use message::Message;
 use notification::Notification;
 use provider::{DynProvider, Provider};
@@ -16,11 +17,12 @@ pub mod notification;
 pub mod notify;
 pub mod provider;
 pub mod template;
+pub mod email;
 
 #[derive(Default)]
-pub struct Notify {
+pub struct Notify<N: Id> {
     templates: template::store::TemplateStore,
-    notifications: notification::Manager,
+    notifications: notification::Manager<N>,
     providers: provider::Manager,
     // contacts: Option<Box<dyn ContactRepository<Id = ContactId>>>,
 }
@@ -31,7 +33,7 @@ pub enum Error {
     Template(template::Error),
 
     #[error("The notification hasn't been registered: {0:?}")]
-    UnknownNotification(TypeId),
+    UnknownNotification(String),
 
     #[error("Failed to create the message")]
     Message(provider::Error),
@@ -40,9 +42,9 @@ pub enum Error {
     Send(provider::Error),
 }
 
-impl Notify {
+impl<N: Id> Notify<N> {
     /// Registers a template T for notification N
-    pub fn register_template<N: Notification, T: Template>(
+    pub fn register_template<NT: Notification<Id = N>, T: Template>(
         &mut self,
         template: T,
     ) -> Result<(), Error> {
@@ -51,7 +53,7 @@ impl Notify {
             .register(&mut self.templates)
             .map_err(Error::Template)?;
 
-        if let Some(_old_template) = self.notifications.set_template::<N>(channel, template) {
+        if let Some(_old_template) = self.notifications.set_template(NT::id(), channel, template) {
             // TODO: remove the old/replaced template from the template manager
         }
 
@@ -65,15 +67,15 @@ impl Notify {
 
     /// Sends a notification to the channels associated with N for the
     /// registered templates
-    pub async fn send<N: Notification>(
+    pub async fn send<NT: Notification<Id = N>>(
         &self,
         to: &Contact,
         notification: N,
     ) -> Result<usize, Error> {
         let templates = self
             .notifications
-            .get_templates(&notification)
-            .ok_or_else(|| Error::UnknownNotification(notification.type_id()))?;
+            .get_templates(&NT::id())
+            .ok_or_else(|| Error::UnknownNotification(format!("{}", &NT::id())))?;
 
         // iterate over the notification's templates and render each one
         let message_contents = templates
@@ -122,15 +124,7 @@ mod test {
     use indoc::indoc;
     use serde::{Deserialize, Serialize};
 
-    use crate::{
-        notification::{Notification, NotificationId},
-        template::email::EmailTemplate,
-        Notify,
-    };
-
-    pub enum Notifications {
-        NewAccountNotification,
-    }
+    use crate::{notification::Notification, template::email::EmailTemplate, Notify};
 
     #[derive(Serialize, Deserialize)]
     pub struct NewAccountNotification {
@@ -139,9 +133,11 @@ mod test {
     }
 
     impl Notification for NewAccountNotification {
-        fn id() -> NotificationId {
+        type Id = &'static str;
+
+        fn id() -> Self::Id {
+            "new_account_notification"
             // "new_account_notification".into()
-            1.into()
         }
     }
 
