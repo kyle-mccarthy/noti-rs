@@ -1,9 +1,9 @@
 use std::any::Any;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 
-mod manager;
-pub use manager::Manager;
+mod store;
+pub use store::Store;
 
 use crate::id::Id;
 

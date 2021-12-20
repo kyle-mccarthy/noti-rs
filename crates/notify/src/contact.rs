@@ -1,62 +1,34 @@
-use crate::id::Id;
+use async_trait::async_trait;
 
-pub mod repository;
+use crate::{channel::ChannelType, id::Id};
 
-// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// pub struct ContactId(pub Id);
+pub mod error;
+pub use error::Error;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Contact {
-    pub name: Option<String>,
-    pub email: Option<String>,
-    pub phone: Option<String>,
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Contact {
+    Email(crate::email::Address),
 }
 
-impl Contact {
-    pub fn has_email(&self) -> bool {
-        self.email.is_some()
-    }
+#[async_trait]
+pub trait ContactRepository: Sync {
+    type Id: Id;
 
-    /// Get a reference to the email contact's email.
-    pub fn email(&self) -> Option<&String> {
-        self.email.as_ref()
-    }
+    async fn name(&self, id: Self::Id) -> Result<String, Error>;
 
-    /// Set the email contact's name.
-    pub fn set_name(&mut self, name: Option<String>) {
-        self.name = name;
-    }
+    async fn email(&self, id: Self::Id) -> Result<String, Error>;
 
-    /// Get a reference to the email contact's name.
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
-    }
+    // async fn phone_number(&self, _id: Self::Id) -> Option<String> {
+    //     None
+    // }
 
-    /// Set the email contact's email.
-    pub fn set_email(&mut self, email: String) {
-        self.email = Some(email);
-    }
+    // async fn device_id(&self, _id: Self::Id) -> Option<String> {
+    //     None
+    // }
+
+    // async fn via(
+    //     &self,
+    //     id: Self::Id,
+    //     notification_id: &str,
+    // ) -> Result<Option<Vec<ChannelType>>, Error>;
 }
-
-// pub struct EmailAddress {
-//     pub name: String,
-//     pub address: String,
-// }
-
-// pub struct PhoneNumber(String);
-
-// pub struct DeviceId(String);
-
-// pub trait Notifiable {
-//     fn email(&self) -> Option<EmailAddress> {
-//         None
-//     }
-
-//     fn phone_number(&self) -> Option<PhoneNumber> {
-//         None
-//     }
-
-//     fn device_id(&self) -> Option<DeviceId> {
-//         None
-//     }
-// }

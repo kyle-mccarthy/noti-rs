@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Error;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Address {
     name: Option<String>,
     email: String,
@@ -61,23 +61,37 @@ impl Email {
 
 #[derive(Debug, Default)]
 pub struct EmailBuilder {
-    to: Option<Address>,
-    from: Option<Address>,
-    reply_to: Option<Address>,
+    pub(super) to: Option<Address>,
+    pub(super) from: Option<Address>,
+    pub(super) reply_to: Option<Address>,
 
-    subject: Option<String>,
-    html: Option<String>,
-    text: Option<String>,
+    pub(super) subject: Option<String>,
+    pub(super) html: Option<String>,
+    pub(super) text: Option<String>,
 }
 
 impl EmailBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn to(mut self, email: String, name: Option<String>) -> Self {
         self.to = Some(Address::new(email, name));
         self
     }
 
+    pub fn to_address(mut self, address: Address) -> Self {
+        self.to = Some(address);
+        self
+    }
+
     pub fn from(mut self, email: String, name: Option<String>) -> Self {
         self.from = Some(Address::new(email, name));
+        self
+    }
+
+    pub fn from_address(mut self, from: Address) -> Self {
+        self.from = Some(from);
         self
     }
 

@@ -1,122 +1,142 @@
-use std::any::TypeId;
-
-use contact::Contact;
-use futures::stream::{self, StreamExt, TryStreamExt};
+use email::EmailChannel;
 use id::Id;
-use message::Message;
-use notification::Notification;
-use provider::{DynProvider, Provider};
-use template::{Render, RenderedTemplate, Template};
 
 pub mod channel;
 pub mod contact;
-pub mod dispatch;
-pub mod id;
-pub mod message;
-pub mod notification;
-pub mod notify;
-pub mod provider;
-pub mod template;
 pub mod email;
+pub mod id;
+pub mod notification;
+pub mod template;
+
+pub use notification::Notification;
+
+pub trait RegisterTemplate {
+    // register the template with the Notify instance
+    fn register<N: Id>(
+        self,
+        notification_id: N,
+        notifications: &mut Notify<N>,
+    ) -> Result<(), Error>;
+}
+
+pub trait RegisterChannel {
+    fn register<N: Id>(self, instance: &mut Notify<N>);
+}
+
+#[async_trait::async_trait]
+pub trait Notifier {
+    type Contact;
+    type MessageBuilder;
+
+    async fn notify(&self, to: Self::Contact, builder: Self::MessageBuilder) -> Result<(), Error>;
+}
 
 #[derive(Default)]
-pub struct Notify<N: Id> {
-    templates: template::store::TemplateStore,
-    notifications: notification::Manager<N>,
-    providers: provider::Manager,
+struct Channels {
+    email: Option<EmailChannel>,
+}
+
+#[derive(Default)]
+pub struct Notify<'a, N: Id> {
+    templates: template::Engine<'a>,
+    notifications: notification::Store<N>,
+    channels: Channels,
     // contacts: Option<Box<dyn ContactRepository<Id = ContactId>>>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Template error: {0:?}")]
-    Template(template::Error),
+    #[error("Email error: {0}")]
+    Email(#[from] email::Error),
 
-    #[error("The notification hasn't been registered: {0:?}")]
-    UnknownNotification(String),
+    #[error("Template error: {0}")]
+    Template(#[from] template::Error),
+    // #[error("Template error: {0:?}")]
+    // Template(template::Error),
 
-    #[error("Failed to create the message")]
-    Message(provider::Error),
+    // #[error("The notification hasn't been registered: {0:?}")]
+    // UnknownNotification(String),
+    // #[error("Failed to create the message")]
+    // Message(provider::Error),
 
-    #[error("Provider encountered an error while sending the message")]
-    Send(provider::Error),
+    // #[error("Provider encountered an error while sending the message")]
+    // Send(provider::Error),
 }
 
-impl<N: Id> Notify<N> {
-    /// Registers a template T for notification N
-    pub fn register_template<NT: Notification<Id = N>, T: Template>(
+impl<'a, N: Id> Notify<'a, N> {
+    /// Register the template for the notification
+    pub fn register_template(
         &mut self,
-        template: T,
+        notification_id: N,
+        template: impl RegisterTemplate,
     ) -> Result<(), Error> {
-        let channel = template.channel();
-        let template = template
-            .register(&mut self.templates)
-            .map_err(Error::Template)?;
-
-        if let Some(_old_template) = self.notifications.set_template(NT::id(), channel, template) {
-            // TODO: remove the old/replaced template from the template manager
-        }
-
-        Ok(())
+        template.register(notification_id, self)
     }
 
-    /// Register a new provider P
-    pub fn register_provider<P: Provider>(&mut self, provider: P) {
-        self.providers.register(provider)
+    pub fn register_channel(&mut self, provider: impl RegisterChannel) {
+        provider.register(self)
     }
 
-    /// Sends a notification to the channels associated with N for the
-    /// registered templates
-    pub async fn send<NT: Notification<Id = N>>(
-        &self,
-        to: &Contact,
-        notification: N,
-    ) -> Result<usize, Error> {
-        let templates = self
-            .notifications
-            .get_templates(&NT::id())
-            .ok_or_else(|| Error::UnknownNotification(format!("{}", &NT::id())))?;
+    // /// Register a new provider P
+    // pub fn register_provider<P: Provider>(&mut self, provider: P) {
+    //     self.providers.register(provider)
+    // }
 
-        // iterate over the notification's templates and render each one
-        let message_contents = templates
-            .filter_map(|(channel_type, template)| {
-                let provider = self.providers.get_provider(channel_type)?;
-                Some((provider, template))
-            })
-            .map(|(provider, template)| {
-                let contents = template
-                    .render(&self.templates, &notification)
-                    .map_err(Error::Template)?;
-                Ok((provider, contents)) as Result<_, Error>
-            })
-            .collect::<Result<Vec<(&provider::DynProvider, RenderedTemplate)>, Error>>()?;
+    // /// Sends a notification to the channels associated with N for the
+    // /// registered templates
+    // pub async fn send<NT: Notification<Id = N>>(
+    //     &self,
+    //     to: &Contact,
+    //     notification: N,
+    // ) -> Result<usize, Error> {
+    //     let templates = self
+    //         .notifications
+    //         .get_templates(&NT::id())
+    //         .ok_or_else(|| Error::UnknownNotification(format!("{}",
+    // &NT::id())))?;
 
-        // iterate over the rendered templates/message contents, producing a message for
-        // each one
-        let messages = message_contents
-            .into_iter()
-            .filter(|(provider, contents)| provider.can_create_message(to, contents))
-            .map(|(provider, contents)| {
-                let message = provider
-                    .create_message(to, contents)
-                    .map_err(Error::Message)?;
-                Ok((provider, message))
-            })
-            .collect::<Result<Vec<(&provider::DynProvider, message::Message)>, Error>>()?;
+    //     // iterate over the notification's templates and render each one
+    //     let message_contents = templates
+    //         .filter_map(|(channel_type, template)| {
+    //             let provider = self.providers.get_provider(channel_type)?;
+    //             Some((provider, template))
+    //         })
+    //         .map(|(provider, template)| {
+    //             let contents = template
+    //                 .render(&self.templates, &notification)
+    //                 .map_err(Error::Template)?;
+    //             Ok((provider, contents)) as Result<_, Error>
+    //         })
+    //         .collect::<Result<Vec<(&provider::DynProvider, RenderedTemplate)>,
+    // Error>>()?;
 
-        // send all the messages
-        let out: Result<Vec<()>, Error> = stream::iter(messages.into_iter())
-            .then(|(provider, message): (&DynProvider, Message)| async {
-                provider.send(message).await.map_err(Error::Send)?;
-                Ok(())
-            })
-            .try_collect()
-            .await;
+    //     // iterate over the rendered templates/message contents, producing a
+    // message for     // each one
+    //     let messages = message_contents
+    //         .into_iter()
+    //         .filter(|(provider, contents)| provider.can_create_message(to,
+    // contents))         .map(|(provider, contents)| {
+    //             let message = provider
+    //                 .create_message(to, contents)
+    //                 .map_err(Error::Message)?;
+    //             Ok((provider, message))
+    //         })
+    //         .collect::<Result<Vec<(&provider::DynProvider, message::Message)>,
+    // Error>>()?;
 
-        let messages_sent = out?.len();
+    //     // send all the messages
+    //     let out: Result<Vec<()>, Error> = stream::iter(messages.into_iter())
+    //         .then(|(provider, message): (&DynProvider, Message)| async {
+    //             provider.send(message).await.map_err(Error::Send)?;
+    //             Ok(())
+    //         })
+    //         .try_collect()
+    //         .await;
 
-        Ok(messages_sent)
-    }
+    //     let messages_sent = out?.len();
+
+    //     Ok(messages_sent)
+    // }
 }
 
 #[cfg(test)]
@@ -124,7 +144,7 @@ mod test {
     use indoc::indoc;
     use serde::{Deserialize, Serialize};
 
-    use crate::{notification::Notification, template::email::EmailTemplate, Notify};
+    use crate::{email::EmailTemplate, notification::Notification, template::Markup, Notify};
 
     #[derive(Serialize, Deserialize)]
     pub struct NewAccountNotification {
@@ -137,32 +157,34 @@ mod test {
 
         fn id() -> Self::Id {
             "new_account_notification"
-            // "new_account_notification".into()
         }
     }
 
     #[test]
     pub fn test_register_notification() {
         let email_template = EmailTemplate {
-            html: indoc! {r#"
+            html: Markup::MJML(indoc! {r#"
                 <mjml>
                     <mj-body>
                         <mj-section>
                             <mj-column>
-                                <mj-text>Hi, please verify your account by clicking the following link:</mj-text>
-                                <mj-text><a href="{{ activation_url }}">{{ activation_url }}</a></mj-text>
-                            </mj-column>
+                                <mj-text>Hi, please verify your account by
+        clicking the following link:</mj-text>
+        <mj-text><a href="{{ activation_url }}">{{ activation_url
+        }}</a></mj-text>                     </mj-column>
                         </mj-section>
                     </mj-body>
                 </mjml>
-            "#},
+            "#}),
             subject: "Example New Account Notification",
-            text: Some("Hi, please verify your account by clicking the following link: {{ activation_url }}"),
+            text: Some(
+                "Hi, please verify your account by clicking the
+        following link: {{ activation_url }}",
+            ),
         };
 
         let mut notify = Notify::default();
-        let result =
-            notify.register_template::<NewAccountNotification, EmailTemplate>(email_template);
+        let result = notify.register_template(NewAccountNotification::id(), email_template);
 
         assert!(result.is_ok());
     }

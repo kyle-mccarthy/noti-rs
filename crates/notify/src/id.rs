@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 pub trait Id:
     std::fmt::Debug
@@ -12,6 +12,8 @@ pub trait Id:
     + std::hash::Hash
     + Serialize
     + Deserialize<'static>
+    + Sync
+    + Send
 {
 }
 
@@ -27,6 +29,8 @@ impl<T> Id for T where
         + std::hash::Hash
         + Serialize
         + Deserialize<'static>
+        + Sync
+        + Send
 {
 }
 
