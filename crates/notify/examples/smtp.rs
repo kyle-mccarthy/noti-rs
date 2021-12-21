@@ -70,14 +70,14 @@ pub async fn main() {
         .register_template(NewAccountNotification::id(), email_template)
         .unwrap();
 
-    // let contact = Contact {
-    //     email: Some("test@test.com".to_string()),
-    //     ..Default::default()
-    // };
+    let to = Address::new("test@test.com".to_string(), None);
+    let contact: Contact = to.into();
 
-    // let notification = NewAccountNotification {
-    //     activation_url: "https://example.com/activate?code=123".to_string(),
-    // };
+    let notification = NewAccountNotification {
+        activation_url: "https://example.com/activate?code=123".to_string(),
+    };
 
-    // notify.send(&contact, notification).await.unwrap();
+    let result = notify.send_now(contact, notification).await;
+
+    assert!(result.is_ok());
 }

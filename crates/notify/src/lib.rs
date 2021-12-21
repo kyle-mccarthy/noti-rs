@@ -1,3 +1,5 @@
+use channel::ChannelType;
+use contact::Contact;
 use email::EmailChannel;
 use id::Id;
 
@@ -9,6 +11,7 @@ pub mod notification;
 pub mod template;
 
 pub use notification::Notification;
+use template::Renderable;
 
 pub trait RegisterTemplate {
     // register the template with the Notify instance
@@ -51,16 +54,19 @@ pub enum Error {
 
     #[error("Template error: {0}")]
     Template(#[from] template::Error),
-    // #[error("Template error: {0:?}")]
-    // Template(template::Error),
 
-    // #[error("The notification hasn't been registered: {0:?}")]
-    // UnknownNotification(String),
-    // #[error("Failed to create the message")]
-    // Message(provider::Error),
+    #[error("The channel has not been registered. (channel type = {0})")]
+    MissingChannel(ChannelType),
 
-    // #[error("Provider encountered an error while sending the message")]
-    // Send(provider::Error),
+    #[error("The notification has not been registered. (id = {0})")]
+    UnknownNotification(String),
+
+    #[error("The notification is missing a template for the channel type.")]
+    MissingTemplate {
+        context: &'static str,
+        notification_id: String,
+        channel_type: ChannelType,
+    },
 }
 
 impl<'a, N: Id> Notify<'a, N> {
@@ -73,8 +79,56 @@ impl<'a, N: Id> Notify<'a, N> {
         template.register(notification_id, self)
     }
 
+    /// Register a notification channel
     pub fn register_channel(&mut self, provider: impl RegisterChannel) {
         provider.register(self)
+    }
+
+    pub fn send<M: Notification<Id = N>>(&self, _notification: M) -> Result<(), Error> {
+        Ok(())
+    }
+
+    pub async fn send_now<M: Notification<Id = N>>(
+        &self,
+        to: Contact,
+        notification: M,
+    ) -> Result<(), Error> {
+        let composite = self.notifications.get(M::id());
+
+        if composite.is_none() {
+            return Err(Error::UnknownNotification(M::id().to_string()));
+        }
+
+        let composite = composite.unwrap();
+
+        match to {
+            Contact::Email(address) => {
+                let template = composite.templates.email();
+
+                let channel = &self.channels.email;
+
+                if channel.is_none() {
+                    return Err(Error::MissingChannel(ChannelType::Email));
+                }
+
+                let channel = channel.as_ref().unwrap();
+
+                if template.is_none() {
+                    return Err(Error::MissingTemplate {
+                        context: "An email contact was provided, but the notification doesn't have an email template registered.",
+                        notification_id: M::id().to_string(),
+                        channel_type: ChannelType::Email,
+                    });
+                }
+
+                let template = template.unwrap();
+                let builder = template.render(&self.templates, &notification)?;
+
+                channel.send_to(address, builder).await?;
+            }
+        }
+
+        Ok(())
     }
 
     // /// Register a new provider P

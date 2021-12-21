@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{channel::ChannelType, id::Id};
+use crate::{id::Id, email::Address};
 
 pub mod error;
 pub use error::Error;
@@ -31,4 +31,10 @@ pub trait ContactRepository: Sync {
     //     id: Self::Id,
     //     notification_id: &str,
     // ) -> Result<Option<Vec<ChannelType>>, Error>;
+}
+
+impl From<Address> for Contact {
+    fn from(address: Address) -> Self {
+        Self::Email(address)
+    }
 }
