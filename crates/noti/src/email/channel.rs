@@ -62,7 +62,7 @@ impl Notifier for EmailChannel {
 }
 
 impl RegisterChannel for EmailChannel {
-    fn register<N: Id>(self, instance: &mut crate::Notify<N>) {
+    fn register<N: Id>(self, instance: &mut crate::Noti<N>) {
         instance.channels.email = Some(self)
     }
 }

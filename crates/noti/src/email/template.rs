@@ -20,7 +20,7 @@ impl<'a> RegisterTemplate for EmailTemplate<'a> {
     fn register<N: Id>(
         self,
         notification_id: N,
-        instance: &mut crate::Notify<N>,
+        instance: &mut crate::Noti<N>,
     ) -> Result<(), crate::Error> {
         let html = self.html.parse()?;
 

@@ -11,5 +11,3 @@ pub trait EmailProvider: Sync + Send + 'static {
 
     async fn send(&self, email: Email) -> Result<(), Error>;
 }
-
-

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{id::Id, email::Address};
+use crate::{email::Address, id::Id};
 
 pub mod error;
 pub use error::Error;

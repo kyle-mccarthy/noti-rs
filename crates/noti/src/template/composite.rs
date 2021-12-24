@@ -16,4 +16,3 @@ impl Composite {
         self.email.as_ref()
     }
 }
-

@@ -1,11 +1,11 @@
 use indoc::indoc;
 use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor};
-use notify::{
+use noti::{
     contact::Contact,
     email::{provider::SmtpProvider, Address, EmailChannel, EmailTemplate},
     notification::Notification,
     template::Markup,
-    Notify,
+    Noti,
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,7 +28,7 @@ const TEST_SMTP_HOST: &str = "smtp.ethereal.email";
 
 #[tokio::main]
 pub async fn main() {
-    let mut notify = Notify::default();
+    let mut notify = Noti::default();
 
     // create and register the SMTP provider
     let creds = Credentials::new(TEST_SMTP_USER.to_string(), TEST_SMTP_PASS.to_string());
