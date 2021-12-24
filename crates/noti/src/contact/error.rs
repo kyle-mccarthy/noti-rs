@@ -1,4 +1,4 @@
-use crate::channel::ChannelType;
+
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
