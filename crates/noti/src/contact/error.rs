@@ -1,5 +1,3 @@
-
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("A contact does not exist with this id. (id = {0})")]
