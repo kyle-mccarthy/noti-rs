@@ -1,25 +1,24 @@
 use indoc::indoc;
 use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor};
-use notify::{
-    contact::Contact, notification::Notification, provider::smtp::SmtpProvider,
-    template::email::EmailTemplate, Notify,
+use noti::{
+    contact::Contact,
+    email::{provider::SmtpProvider, Address, EmailChannel, EmailTemplate},
+    notification::Notification,
+    template::Markup,
+    Noti,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-pub enum Notifications {
-    NewAccountNotification,
-}
-
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct NewAccountNotification {
     activation_url: String,
 }
 
 impl Notification for NewAccountNotification {
-    type Id = Notifications;
+    type Id = &'static str;
 
     fn id() -> Self::Id {
-        Notifications::NewAccountNotification
+        "new_account"
     }
 }
 
@@ -29,7 +28,7 @@ const TEST_SMTP_HOST: &str = "smtp.ethereal.email";
 
 #[tokio::main]
 pub async fn main() {
-    let mut notify = Notify::default();
+    let mut notify = Noti::default();
 
     // create and register the SMTP provider
     let creds = Credentials::new(TEST_SMTP_USER.to_string(), TEST_SMTP_PASS.to_string());
@@ -40,14 +39,16 @@ pub async fn main() {
         .port(587)
         .build::<Tokio1Executor>();
 
-    let mut smtp_provider = SmtpProvider::new(transport);
-    smtp_provider.set_default_sender("no-reply@example.com".to_string());
+    let smtp_provider = SmtpProvider::new(transport);
 
-    notify.register_provider(smtp_provider);
+    let mut channel = EmailChannel::new(smtp_provider);
+    channel.set_default_sender(Address::new("no-reply@email.com".to_string(), None));
+
+    notify.register_channel(channel);
 
     // create and register the template
     let email_template = EmailTemplate {
-        html: indoc! {r#"
+        html: Markup::MJML(indoc! {r#"
                 <mjml>
                     <mj-body>
                         <mj-section>
@@ -58,7 +59,7 @@ pub async fn main() {
                         </mj-section>
                     </mj-body>
                 </mjml>
-            "#},
+            "#}),
         subject: "Example New Account Notification",
         text: Some(
             "Hi, please verify your account by clicking the following link: {{ activation_url }}",
@@ -66,17 +67,17 @@ pub async fn main() {
     };
 
     notify
-        .register_template::<NewAccountNotification, EmailTemplate>(email_template)
+        .register_template(NewAccountNotification::id(), email_template)
         .unwrap();
 
-    let contact = Contact {
-        email: Some("test@test.com".to_string()),
-        ..Default::default()
-    };
+    let to = Address::new("test@test.com".to_string(), None);
+    let contact: Contact = to.into();
 
     let notification = NewAccountNotification {
         activation_url: "https://example.com/activate?code=123".to_string(),
     };
 
-    notify.send(&contact, notification).await.unwrap();
+    let result = notify.send_now(contact, notification).await;
+
+    assert!(result.is_ok());
 }
