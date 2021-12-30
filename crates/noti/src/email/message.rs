@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::Error;
+use crate::channel::{ChannelType, Error};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Address {
@@ -117,11 +117,29 @@ impl EmailBuilder {
 
     pub fn build(self) -> Result<Email, Error> {
         // required fields
-        let to = self.to.ok_or(Error::MissingField("to"))?;
-        let from = self.from.ok_or(Error::MissingField("from"))?;
+        let to = self.to.ok_or(Error::MissingField {
+            name: "to",
+            channel_type: ChannelType::Email,
+            context: None,
+        })?;
 
-        let subject = self.subject.ok_or(Error::MissingField("subject"))?;
-        let html = self.html.ok_or(Error::MissingField("html"))?;
+        let from = self.from.ok_or(Error::MissingField {
+            name: "from",
+            channel_type: ChannelType::Email,
+            context: None,
+        })?;
+
+        let subject = self.subject.ok_or(Error::MissingField {
+            name: "subject",
+            channel_type: ChannelType::Email,
+            context: None,
+        })?;
+
+        let html = self.html.ok_or(Error::MissingField {
+            name: "html",
+            channel_type: ChannelType::Email,
+            context: None,
+        })?;
 
         // optional fields
         let text = self.text;

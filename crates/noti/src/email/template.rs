@@ -3,7 +3,7 @@ use serde::Serialize;
 use super::EmailBuilder;
 use crate::{
     id::Id,
-    template::{Engine, Markup, Renderable, TemplateId},
+    template::{Engine, Markup, RenderTemplate, TemplateId},
     RegisterTemplate,
 };
 
@@ -55,7 +55,7 @@ pub struct RegisteredEmailTemplate {
     text: Option<TemplateId>,
 }
 
-impl Renderable for RegisteredEmailTemplate {
+impl RenderTemplate for RegisteredEmailTemplate {
     type MessageBuilder = EmailBuilder;
 
     fn render<T: Serialize>(

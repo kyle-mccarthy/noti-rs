@@ -5,6 +5,8 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
@@ -13,7 +15,6 @@ tracing-subscriber = "0.2"
 uuid = { version = "1.0.0-alpha.1", features = ["serde", "v4"] }
 mockall = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
-flume = "0.10"
 handlebars = "4.1"
 anyhow = "1.0"
 mrml = { version = "1.2", features = ["orderedmap"] }
@@ -21,8 +22,13 @@ lazy_static = "1.4"
 lettre = { version = "0.10.0-rc.4", features = ["serde", "tokio1", "tokio1-native-tls"] }
 async-trait = "0.1"
 tokio = { version = "1.13", features = ["full"] }
-futures = "0.3"
-fixed-map = "0.7"
+
+twilio-async = { version = "0.5.0", optional = true }
+
+[features]
+default = ["twilio"]
+twilio = ["twilio-async"]
+
 
 [dev-dependencies]
 pretty_assertions = "0.4"

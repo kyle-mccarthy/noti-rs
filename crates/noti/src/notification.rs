@@ -3,7 +3,8 @@ use std::any::Any;
 use serde::{de::DeserializeOwned, Serialize};
 
 mod store;
-pub use store::Store;
+
+pub(crate) use store::{Composite, Store};
 
 use crate::id::Id;
 

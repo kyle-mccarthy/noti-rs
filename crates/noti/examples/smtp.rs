@@ -77,7 +77,7 @@ pub async fn main() {
         activation_url: "https://example.com/activate?code=123".to_string(),
     };
 
-    let result = notify.send_now(contact, notification).await;
+    let result = notify.send(contact, notification).await;
 
     assert!(result.is_ok());
 }

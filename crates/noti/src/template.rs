@@ -13,7 +13,7 @@ pub use id::TemplateId;
 pub use markup::Markup;
 
 pub trait Register {
-    type Output: Renderable;
+    type Output: RenderTemplate;
 
     fn channel(&self) -> ChannelType;
     fn register(&self, engine: &mut Engine) -> Result<Self::Output, Error>;
@@ -29,16 +29,9 @@ pub enum Error {
 
     #[error("Failed to render the template: {0:?}")]
     Render(#[from] handlebars::RenderError),
-
-    #[error("")]
-    UnknownTemplate(TemplateId),
 }
 
-pub enum Template {
-    // Email(crate::email::template::EmailTemplate),
-}
-
-pub trait Renderable {
+pub trait RenderTemplate {
     type MessageBuilder;
 
     fn render<T: Serialize>(

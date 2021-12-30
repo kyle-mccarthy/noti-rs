@@ -5,6 +5,7 @@ use lettre::{
 };
 
 use super::{Address, Email, EmailProvider, Error};
+use crate::channel::ChannelType;
 
 pub struct SmtpProvider {
     transport: AsyncSmtpTransport<Tokio1Executor>,
@@ -23,7 +24,11 @@ impl TryFrom<Address> for Mailbox {
         let email = addr
             .email()
             .parse::<lettre::Address>()
-            .map_err(|e| Error::Address(format!("{:?}", e)))?;
+            .map_err(|e| Error::InvalidContact {
+                source: e.into(),
+                context: Some("The emaill address could not be convered into a lettre::Address"),
+                channel_type: ChannelType::Email,
+            })?;
 
         let name: Option<String> = addr.name().map(|n| n.to_owned());
 
@@ -33,7 +38,7 @@ impl TryFrom<Address> for Mailbox {
 
 #[async_trait]
 impl EmailProvider for SmtpProvider {
-    fn id(&self) -> &str {
+    fn id(&self) -> &'static str {
         "smtp"
     }
 
@@ -56,12 +61,19 @@ impl EmailProvider for SmtpProvider {
             builder.singlepart(SinglePart::html(message.html().to_owned()))
         };
 
-        let email = result.map_err(|e| Error::Message(format!("{:?}", e)))?;
+        let email = result.map_err(|e| Error::Send {
+            source: e.into(),
+            channel_type: ChannelType::Email,
+            context: Some("failed to build the lettre::Message"),
+            provider_id: self.id(),
+        })?;
 
-        self.transport
-            .send(email)
-            .await
-            .map_err(|e| Error::Send(format!("{0:?}", e)))?;
+        self.transport.send(email).await.map_err(|e| Error::Send {
+            source: e.into(),
+            channel_type: ChannelType::Email,
+            context: Some("SMTP email provider failed to send the email"),
+            provider_id: self.id(),
+        })?;
 
         Ok(())
     }

@@ -8,6 +8,8 @@ pub enum Markup<'a> {
 }
 
 impl<'a> Markup<'a> {
+    /// Parse the markup into a string. Some types of markup need to parsed
+    /// (MJML), while others can directly return their contents (Text).
     pub fn parse(&self) -> Result<String, Error> {
         match self {
             Self::Text(contents) | Self::HTML(contents) => Ok(contents.to_string()),
