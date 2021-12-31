@@ -1,7 +1,10 @@
 use serde::Serialize;
 
 use super::SmsBuilder;
-use crate::{template::{TemplateId, Engine, RenderTemplate}, RegisterTemplate};
+use crate::{
+    template::{Engine, RenderTemplate, TemplateId},
+    RegisterTemplate,
+};
 
 pub struct SmsTemplate(&'static str);
 

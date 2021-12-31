@@ -12,7 +12,7 @@ pub use provider::Provider;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ChannelType {
     Email,
-    Sms
+    Sms,
 }
 
 impl Display for ChannelType {
@@ -23,4 +23,3 @@ impl Display for ChannelType {
         }
     }
 }
-
