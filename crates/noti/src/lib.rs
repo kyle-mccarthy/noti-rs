@@ -13,6 +13,7 @@ pub mod notification;
 pub mod sms;
 pub mod template;
 
+pub use channel::Provider;
 pub use id::Id;
 pub use notification::Notification;
 
@@ -134,7 +135,8 @@ impl<'a, N: Id> Noti<'a, N> {
                 ),
                 notification_id: M::id().to_string(),
                 channel_type: ChannelType::Email,
-            }.into());
+            }
+            .into());
         }
 
         let template = template.unwrap();
@@ -159,7 +161,8 @@ impl<'a, N: Id> Noti<'a, N> {
                 ),
                 notification_id: M::id().to_string(),
                 channel_type: ChannelType::Email,
-            }.into());
+            }
+            .into());
         }
 
         let template = template.unwrap();
@@ -187,7 +190,7 @@ impl<'a, N: Id> Noti<'a, N> {
                 let channel = self.get_sms_channel()?;
                 let builder = self.create_sms_notification(&notification)?;
 
-                debug!("sending an sms notification");
+                debug!("sending a sms notification");
 
                 channel.send_to(phone_number, builder).await?;
             }
@@ -221,23 +224,27 @@ mod test {
     #[test]
     pub fn test_register_notification() {
         let email_template = EmailTemplate {
-            html: Markup::MJML(indoc! {r#"
+            html: Markup::Mjml(indoc! {r#"
                 <mjml>
                     <mj-body>
                         <mj-section>
                             <mj-column>
-                                <mj-text>Hi, please verify your account by
-        clicking the following link:</mj-text>
-        <mj-text><a href="{{ activation_url }}">{{ activation_url
-        }}</a></mj-text>                     </mj-column>
+                                <mj-text>
+                                    Hi, please verify your account by clicking the following link:
+                                </mj-text>
+        
+                                <mj-text>
+                                    <a href="{{ activation_url }}">{{ activation_url }}</a>
+                                </mj-text>
+                            </mj-column>
                         </mj-section>
                     </mj-body>
                 </mjml>
             "#}),
             subject: "Example New Account Notification",
             text: Some(
-                "Hi, please verify your account by clicking the
-        following link: {{ activation_url }}",
+                "Hi, please verify your account by clicking \
+                the following link: {{ activation_url }}",
             ),
         };
 

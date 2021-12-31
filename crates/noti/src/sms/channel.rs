@@ -1,16 +1,16 @@
-use super::{provider::SmsProvider, PhoneNumber, SmsBuilder};
+use super::{PhoneNumber, Sms, SmsBuilder};
 use crate::{
     channel::{ChannelType, Error},
-    Id, Notifier, RegisterChannel,
+    Id, Notifier, Provider, RegisterChannel,
 };
 
 pub struct SmsChannel {
     pub(crate) default_sender: Option<PhoneNumber>,
-    pub(crate) provider: Box<dyn SmsProvider>,
+    pub(crate) provider: Box<dyn Provider<Message = Sms>>,
 }
 
 impl SmsChannel {
-    pub fn new<T: SmsProvider + 'static>(provider: T) -> Self {
+    pub fn new<T: Provider<Message = Sms>>(provider: T) -> Self {
         Self {
             default_sender: None,
             provider: Box::new(provider),
@@ -20,16 +20,6 @@ impl SmsChannel {
     pub fn set_default_sender(&mut self, sender: PhoneNumber) {
         self.default_sender = Some(sender);
     }
-
-    // pub async fn create_contact<C: Id>(
-    //     &self,
-    //     contact_id: C,
-    //     repository: &impl ContactRepository<Id = C>,
-    // ) -> Result<PhoneNumber, crate::contact::Error> {
-    //     let number = repository.phone_number(contact_id).await?;
-
-    //     Ok(PhoneNumber::new(number))
-    // }
 
     pub async fn send_to(&self, to: PhoneNumber, mut builder: SmsBuilder) -> Result<(), Error> {
         if builder.from.is_none() {

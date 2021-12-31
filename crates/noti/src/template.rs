@@ -12,6 +12,8 @@ pub use engine::Engine;
 pub use id::TemplateId;
 pub use markup::Markup;
 
+use self::markup::MarkupType;
+
 pub trait Register {
     type Output: RenderTemplate;
 
@@ -22,7 +24,11 @@ pub trait Register {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Template contained invalid markup")]
-    Markup(anyhow::Error),
+    Markup {
+        source: anyhow::Error,
+        markup_type: MarkupType,
+        context: Option<&'static str>,
+    },
 
     #[error("Error while parsing the template: {0:?}")]
     Parse(#[from] handlebars::TemplateError),

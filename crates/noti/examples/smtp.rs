@@ -48,7 +48,7 @@ pub async fn main() {
 
     // create and register the template
     let email_template = EmailTemplate {
-        html: Markup::MJML(indoc! {r#"
+        html: Markup::Mjml(indoc! {r#"
                 <mjml>
                     <mj-body>
                         <mj-section>

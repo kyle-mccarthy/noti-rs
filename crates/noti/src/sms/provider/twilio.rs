@@ -1,9 +1,8 @@
 use twilio_async::{Twilio, TwilioJson, TwilioRequest};
 
-use super::SmsProvider;
 use crate::{
     channel::{ChannelType, Error},
-    sms::Sms,
+    sms::Sms, Provider,
 };
 
 pub struct TwilioProvider {
@@ -19,12 +18,14 @@ pub struct TwilioError {
 }
 
 #[async_trait::async_trait]
-impl SmsProvider for TwilioProvider {
+impl Provider for TwilioProvider {
+    type Message = Sms;
+
     fn id(&self) -> &'static str {
         "twilio"
     }
 
-    async fn send(&self, message: Sms) -> Result<(), Error> {
+    async fn send(&self, message: Self::Message) -> Result<(), Error> {
         let message = self
             .instance
             .send_msg(message.from(), message.to(), message.contents());

@@ -1,38 +1,35 @@
-use super::{Address, EmailBuilder, EmailProvider};
+use super::{Address, Email, EmailBuilder};
 use crate::{
     channel::{ChannelType, Error},
     id::Id,
-    Notifier, RegisterChannel,
+    Notifier, Provider, RegisterChannel,
 };
 
 pub struct EmailChannel {
     pub(crate) default_sender: Option<Address>,
-    pub(crate) provider: Box<dyn EmailProvider>,
+    pub(crate) provider: Box<dyn Provider<Message = Email>>,
 }
 
 impl EmailChannel {
-    pub fn new<T: EmailProvider + 'static>(provider: T) -> Self {
+    /// Create an email channel with the given provider
+    pub fn new<T: Provider<Message = Email>>(provider: T) -> Self {
         Self {
             default_sender: None,
             provider: Box::new(provider),
         }
     }
 
+    /// Set the default sender to use when sending emails. This allows for
+    /// omitting the sender when building the email.
     pub fn set_default_sender(&mut self, sender: Address) {
         self.default_sender = Some(sender);
     }
 
-    // pub async fn create_contact<C: Id>(
-    //     &self,
-    //     contact_id: C,
-    //     repository: &impl ContactRepository<Id = C>,
-    // ) -> Result<Address, crate::contact::Error> {
-    //     let email = repository.email(contact_id).await?;
-    //     let name = repository.name(contact_id).await.ok();
-
-    //     Ok(Address::new(email, name))
-    // }
-
+    /// Send an email to the address using the builder.
+    ///
+    /// The builder should already contain the subject and HTML content of the
+    /// email. If the channel's provider doesn't have a default email
+    /// address set, the builder must also contain the sender/from address.
     pub async fn send_to(&self, to: Address, mut builder: EmailBuilder) -> Result<(), Error> {
         if builder.from.is_none() {
             if let Some(default_sender) = &self.default_sender {

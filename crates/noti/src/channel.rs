@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
 mod error;
+mod provider;
+
 pub use error::Error;
+pub use provider::Provider;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ChannelType {

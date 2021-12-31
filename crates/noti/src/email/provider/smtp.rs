@@ -4,8 +4,7 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 
-use super::{Address, Email, EmailProvider, Error};
-use crate::channel::ChannelType;
+use crate::{channel::{ChannelType, Error}, email::{Address, Email}, Provider};
 
 pub struct SmtpProvider {
     transport: AsyncSmtpTransport<Tokio1Executor>,
@@ -37,12 +36,14 @@ impl TryFrom<Address> for Mailbox {
 }
 
 #[async_trait]
-impl EmailProvider for SmtpProvider {
+impl Provider for SmtpProvider {
+    type Message = Email;
+
     fn id(&self) -> &'static str {
         "smtp"
     }
 
-    async fn send(&self, message: Email) -> Result<(), Error> {
+    async fn send(&self, message: Self::Message) -> Result<(), Error> {
         let from: Mailbox = message.from().clone().try_into()?;
 
         let to: Mailbox = message.to().clone().try_into()?;
