@@ -1,16 +1,16 @@
-use channel::{ChannelType, Error as ChannelError};
+use channel::{
+    email::{EmailBuilder, EmailChannel},
+    sms::{channel::SmsChannel, SmsBuilder},
+    ChannelType, Error as ChannelError,
+};
 use contact::Contact;
-use email::{EmailBuilder, EmailChannel};
-use sms::{channel::SmsChannel, SmsBuilder};
 use template::RenderTemplate;
 use tracing::{debug, warn};
 
 pub mod channel;
 pub mod contact;
-pub mod email;
 pub mod id;
 pub mod notification;
-pub mod sms;
 pub mod template;
 
 pub use channel::Provider;
@@ -205,7 +205,9 @@ mod test {
     use indoc::indoc;
     use serde::{Deserialize, Serialize};
 
-    use crate::{email::EmailTemplate, notification::Notification, template::Markup, Noti};
+    use crate::{
+        channel::email::EmailTemplate, notification::Notification, template::Markup, Noti,
+    };
 
     #[derive(Serialize, Deserialize)]
     pub struct NewAccountNotification {

@@ -4,7 +4,13 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 
-use crate::{channel::{ChannelType, Error}, email::{Address, Email}, Provider};
+use crate::{
+    channel::{
+        email::{Address, Email},
+        ChannelType, Error,
+    },
+    Provider,
+};
 
 pub struct SmtpProvider {
     transport: AsyncSmtpTransport<Tokio1Executor>,

@@ -1,8 +1,8 @@
 use twilio_async::{Twilio, TwilioJson, TwilioRequest};
 
 use crate::{
-    channel::{ChannelType, Error},
-    sms::Sms, Provider,
+    channel::{sms::Sms, ChannelType, Error},
+    Provider,
 };
 
 pub struct TwilioProvider {

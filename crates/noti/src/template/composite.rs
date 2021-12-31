@@ -1,4 +1,6 @@
-use crate::{email::template::RegisteredEmailTemplate, sms::template::RegisteredSmsTemplate};
+use crate::channel::{
+    email::template::RegisteredEmailTemplate, sms::template::RegisteredSmsTemplate,
+};
 
 #[derive(Default)]
 pub struct Composite {

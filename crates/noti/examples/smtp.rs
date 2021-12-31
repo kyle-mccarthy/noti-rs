@@ -1,8 +1,8 @@
 use indoc::indoc;
 use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor};
 use noti::{
+    channel::email::{provider::SmtpProvider, Address, EmailChannel, EmailTemplate},
     contact::Contact,
-    email::{provider::SmtpProvider, Address, EmailChannel, EmailTemplate},
     notification::Notification,
     template::Markup,
     Noti,

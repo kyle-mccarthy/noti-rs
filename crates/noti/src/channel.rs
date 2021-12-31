@@ -3,6 +3,9 @@ use std::fmt::Display;
 mod error;
 mod provider;
 
+pub mod email;
+pub mod sms;
+
 pub use error::Error;
 pub use provider::Provider;
 

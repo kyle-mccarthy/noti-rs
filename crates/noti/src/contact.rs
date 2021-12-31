@@ -1,9 +1,9 @@
-use crate::email::Address;
+use crate::channel::{email::Address, sms::PhoneNumber};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Contact {
-    Email(crate::email::Address),
-    PhoneNumber(crate::sms::PhoneNumber),
+    Email(Address),
+    PhoneNumber(PhoneNumber),
 }
 
 // #[async_trait]
