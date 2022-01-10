@@ -1,4 +1,5 @@
 [workspace]
 members = [
-    "crates/noti"
+    "crates/notifier",
+    "crates/notifier-email",
 ]

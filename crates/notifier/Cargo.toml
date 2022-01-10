@@ -1,0 +1,21 @@
+[package]
+name = "notifier"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.2"
+uuid = { version = "1.0.0-alpha.1", features = ["serde", "v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+handlebars = "4.2"
+anyhow = "1.0"
+async-trait = "0.1"
+lock_api = "0.4"
+fastrand = "1.6"
+mrml = { version = "1.2", features = ["parse", "render", "orderedmap"], default-features = false }
+liquid = "0.23"

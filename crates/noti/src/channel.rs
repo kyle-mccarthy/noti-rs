@@ -4,10 +4,13 @@ mod error;
 mod provider;
 
 pub mod email;
+pub mod push;
 pub mod sms;
 
 pub use error::Error;
 pub use provider::Provider;
+
+use crate::{Id, Notification};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ChannelType {
@@ -23,3 +26,25 @@ impl Display for ChannelType {
         }
     }
 }
+
+pub trait Channel {
+    type Contact;
+    type Message;
+    type Template;
+
+    fn register_template<N: Id>(
+        &mut self,
+        notification_id: &N,
+        template: Self::Template,
+    ) -> Result<(), Error>;
+
+    fn create_message<N: Notification>(
+        &self,
+        notification: &N,
+        contact: &Self::Contact,
+    ) -> Result<Self::Message, Error>;
+
+    fn send(&self, message: Self::Message) -> Result<(), Error>;
+}
+
+pub trait TemplateRepository {}

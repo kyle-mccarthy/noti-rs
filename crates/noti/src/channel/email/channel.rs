@@ -64,9 +64,3 @@ impl Notifier for EmailChannel {
         Ok(self.send_to(to, builder).await?)
     }
 }
-
-impl RegisterChannel for EmailChannel {
-    fn register<N: Id>(self, instance: &mut crate::Noti<N>) {
-        instance.channels.email = Some(self)
-    }
-}

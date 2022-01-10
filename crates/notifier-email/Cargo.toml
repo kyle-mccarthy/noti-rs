@@ -1,0 +1,23 @@
+[package]
+name = "notifier-email"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["smtp"]
+smtp = ["lettre", "tokio"]
+
+[dependencies]
+notifier = { path = "../notifier" }
+serde = { version = "1.0", features = ["derive"] }
+async-trait = "0.1"
+
+[dependencies.lettre]
+version = "0.10.0-rc.4"
+features = ["serde", "tokio1", "tokio1-native-tls"]
+optional = true
+
+[dependencies.tokio]
+version = "1.15"
+features = ["full"]
+optional = true

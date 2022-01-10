@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::channel::ChannelType;
+use crate::{channel::ChannelType, Id};
 
 mod composite;
 mod engine;
@@ -45,4 +45,10 @@ pub trait RenderTemplate {
         engine: &Engine,
         data: &T,
     ) -> Result<Self::MessageBuilder, Error>;
+}
+
+pub trait TemplateRepository {
+    fn register(&mut self, template: &str) -> Result<TemplateId, Error>;
+
+    fn composite<N: Id>(&mut self, notification_id: &N) -> &mut Composite; 
 }

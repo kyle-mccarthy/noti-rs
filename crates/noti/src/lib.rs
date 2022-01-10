@@ -1,3 +1,5 @@
+#![warn(clippy::all)]
+
 use channel::{
     email::{EmailBuilder, EmailChannel},
     sms::{channel::SmsChannel, SmsBuilder},
@@ -17,12 +19,29 @@ pub use channel::Provider;
 pub use id::Id;
 pub use notification::Notification;
 
+// pub trait RegisterTemplate<T> {
+//     fn register<N: Id>(&mut self, notification_id: N, template: &mut T) ->
+// Result<(), Error>; }
+
+// pub trait RegisterChannel<T> {
+//     fn register<N: Id>(&mut self, channel: T);
+// }
+
 pub trait RegisterTemplate {
     fn register<N: Id>(self, notification_id: N, notifications: &mut Noti<N>) -> Result<(), Error>;
 }
 
 pub trait RegisterChannel {
     fn register<N: Id>(self, instance: &mut Noti<N>);
+}
+
+pub trait CreateMessage<C> {
+    type MessageBuilder;
+
+    fn create_message<N: Id, M: Notification<Id = N>>(
+        &self,
+        notification: &M,
+    ) -> Result<Self::MessageBuilder, ChannelError>;
 }
 
 #[async_trait::async_trait]
