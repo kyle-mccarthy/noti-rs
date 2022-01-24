@@ -1,3 +1,5 @@
+use crate::channel::ChannelType;
+
 use super::{markup::MarkupType, TemplateId};
 
 #[derive(Debug, thiserror::Error)]
@@ -20,6 +22,9 @@ pub enum Error {
     #[error("A template with this ID doesn't exist engine")]
     UnknownTemplate(TemplateId),
 
-    #[error("A template hasn't been registered for this notification")]
-    UnknownNotification(String),
+    #[error("A template hasn't been registered for this channel and notification")]
+    NotFound {
+        channel_type: ChannelType,
+        notification_id: String,
+    },
 }

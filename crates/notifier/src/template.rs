@@ -1,16 +1,13 @@
-mod error;
-
-use serde::Serialize;
 use uuid::Uuid;
 
 pub mod engine;
+pub mod error;
 pub mod markup;
-pub mod repository;
+pub mod registry;
 pub mod service;
-pub mod store;
 
 pub use engine::TemplateEngine;
-pub use error::Error;
+pub use error::Error as TemplateError;
 pub use markup::Markup;
 pub use service::TemplateService;
 
@@ -28,20 +25,4 @@ impl TemplateId {
     pub fn new() -> Self {
         Self::default()
     }
-}
-
-pub trait RegisterTemplate {
-    type Template: RenderTemplate;
-
-    fn register(&self, engine: &mut TemplateEngine) -> Result<Self::Template, Error>;
-}
-
-pub trait RenderTemplate {
-    type Message;
-
-    fn render<T: Serialize>(
-        &self,
-        engine: &TemplateEngine,
-        data: &T,
-    ) -> Result<Self::Message, Error>;
 }

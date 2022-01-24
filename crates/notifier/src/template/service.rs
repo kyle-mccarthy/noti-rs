@@ -1,35 +1,62 @@
+use std::any::Any;
+
 use super::{
-    engine::TemplateEngine, store::TemplateStore, Error, RegisterTemplate, RenderTemplate,
+    engine::{RenderContext, TemplateEngine},
+    registry::TemplateRegistry,
+    TemplateError, TemplateId,
 };
-use crate::{Id, Notification};
+use crate::{channel::ChannelType, Id};
 
 #[derive(Default)]
-pub struct TemplateService<I: Id, T: RenderTemplate> {
+pub struct TemplateService<I: Id> {
     engine: TemplateEngine,
-    store: TemplateStore<I, T>,
+    registry: TemplateRegistry<I>,
 }
-impl<I: Id, T: RenderTemplate> TemplateService<I, T> {
+impl<I: Id> TemplateService<I> {
     pub fn new() -> Self {
         Self {
             engine: TemplateEngine::new(),
-            store: TemplateStore::new(),
+            registry: TemplateRegistry::new(),
         }
     }
 
-    pub fn register<N: Notification<Id = I>, S: RegisterTemplate<Template = T>>(
+    /// Register the template with the service for the given channel and
+    /// notification. The template is `Box<dyn Any>`, the channel will
+    /// downcast this to get the concrete type.
+    pub fn register_template(
         &mut self,
-        source: S,
-    ) -> Result<(), Error> {
-        let template = source.register(&mut self.engine)?;
-        self.store.insert(N::id(), template);
-        Ok(())
+        notification_id: I,
+        channel_type: ChannelType,
+        template: Box<dyn Any>,
+    ) {
+        self.registry
+            .register(notification_id, channel_type, template)
     }
 
-    pub fn render<N: Notification<Id = I>>(&self, notification: &N) -> Result<T::Message, Error> {
-        let template = self
-            .store
-            .get(&N::id())
-            .ok_or_else(|| Error::UnknownNotification(N::id().to_string()))?;
-        template.render(&self.engine, notification)
+    /// Get a reference to the template registered for the channel and
+    /// notification.
+    pub fn get_template(
+        &self,
+        notification_id: I,
+        channel_type: ChannelType,
+    ) -> Option<&Box<dyn Any>> {
+        self.registry.get_template(notification_id, channel_type)
+    }
+
+    pub fn engine(&self) -> &TemplateEngine {
+        &self.engine
+    }
+
+    pub fn engine_mut(&mut self) -> &mut TemplateEngine {
+        &mut self.engine
+    }
+
+    /// Render the template with the data from the context.
+    pub fn render_template(
+        &self,
+        template_id: TemplateId,
+        context: &RenderContext,
+    ) -> Result<String, TemplateError> {
+        self.engine().render(template_id, context)
     }
 }

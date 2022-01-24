@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 pub trait Id:
     std::fmt::Debug
@@ -16,6 +16,7 @@ pub trait Id:
     + Deserialize<'static>
     + Sync
     + Send
+    + 'static
 {
 }
 
@@ -33,11 +34,14 @@ impl<T> Id for T where
         + Deserialize<'static>
         + Sync
         + Send
+        + 'static
 {
 }
 
-pub trait Notification: Any + Serialize + DeserializeOwned {
+pub trait Notification: Sized + Any + Serialize {
     type Id: Id;
 
-    fn id() -> Self::Id;
+    fn id() -> Self::Id
+    where
+        Self: Sized;
 }

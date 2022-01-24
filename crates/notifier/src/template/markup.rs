@@ -1,4 +1,4 @@
-use super::Error;
+use super::TemplateError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MarkupType {
@@ -12,15 +12,15 @@ pub enum Markup<'a> {
 
 impl<'a> Markup<'a> {
     /// Parse the markup into a string
-    pub fn parse(&self) -> Result<String, Error> {
+    pub fn parse(&self) -> Result<String, TemplateError> {
         let output = match self {
             Self::Mjml(mjml) => mrml::mjml::MJML::parse(mjml)
-                .map_err(|source| Error::Markup {
+                .map_err(|source| TemplateError::Markup {
                     source: anyhow::Error::msg(source.to_string()),
                     ty: MarkupType::Mjml,
                 })?
                 .render(&mrml::prelude::render::Options::default())
-                .map_err(|source| Error::Markup {
+                .map_err(|source| TemplateError::Markup {
                     source: anyhow::Error::msg(source.to_string()),
                     ty: MarkupType::Mjml,
                 })?,
