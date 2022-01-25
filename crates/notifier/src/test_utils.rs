@@ -1,12 +1,9 @@
-use std::{
-    any::TypeId,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::{template::TemplateId, Channel, Error, Id, Notification, TemplateError};
+use crate::{template::TemplateId, Channel, Error, Id, Notification};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TestContact(pub String);
@@ -86,20 +83,7 @@ impl<I: Id> Channel<I> for TestChannel {
         let channel_type = <Self as Channel<I>>::channel_type(self);
 
         let template = template_service
-            .get_template(notification_id, channel_type)
-            .ok_or_else(|| TemplateError::NotFound {
-                channel_type,
-                notification_id: notification_id.to_string(),
-            })?;
-
-        let template =
-            template
-                .downcast_ref::<TestRegisteredTemplate>()
-                .ok_or(Error::Downcast {
-                    context: Some("Failed to downcast the template into TestRegisteredTemplate"),
-                    found: (&*template).type_id(),
-                    expected: TypeId::of::<TestRegisteredTemplate>(),
-                })?;
+            .get_template::<TestRegisteredTemplate>(notification_id, channel_type)?;
 
         let output = template_service.render_template(template.0, context)?;
 

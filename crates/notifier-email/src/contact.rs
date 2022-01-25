@@ -7,8 +7,8 @@ pub struct EmailAddress {
 }
 
 impl EmailAddress {
-    pub fn new(email: String, name: Option<String>) -> Self {
-        Self { email, name }
+    pub fn new<E: ToString>(email: E, name: Option<String>) -> Self {
+        Self { email: email.to_string(), name }
     }
 
     pub fn name(&self) -> Option<&str> {

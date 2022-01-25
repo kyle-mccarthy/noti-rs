@@ -8,7 +8,7 @@ pub mod template;
 use std::any::{Any, TypeId};
 
 use channel::registry::ChannelRegistry;
-pub use channel::{Channel};
+pub use channel::Channel;
 use contact::{Contact, DynContact};
 pub use notification::{Id, Notification};
 pub use provider::{Error as ProviderError, Provider};
@@ -43,12 +43,19 @@ pub struct Notifier<I: Id> {
     templates: TemplateService<I>,
 }
 
+impl<I: Id + Default> Notifier<I> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<I: Id> Notifier<I> {
-    /// Add the channel to the notifier's registry
+    /// Add the channel to the notifier's registry.
     pub fn register_channel<C: Channel<I>>(&mut self, channel: C) {
         self.channels.register(channel)
     }
 
+    /// Register a template for the notification.
     pub fn register_notification<N: Notification<Id = I>, T: Any>(
         &mut self,
         template: T,
@@ -65,6 +72,7 @@ impl<I: Id> Notifier<I> {
         Ok(())
     }
 
+    /// Send the message to a specific channel's contact.
     pub async fn send_message_to_contact<N: Notification<Id = I>, C: Contact>(
         &self,
         notification: N,
@@ -137,5 +145,38 @@ mod test {
         let messages = channel.messages.lock().unwrap();
         let len = messages.len();
         assert_eq!(len, 1);
+    }
+
+    #[tokio::test]
+    async fn test_fails_to_register_notification_on_unknown_channel() {
+        let mut notifier = Notifier::<&'static str>::default();
+        let template = TestTemplate("message = {{message}}");
+
+        let result = notifier.register_notification::<TestNotification, TestTemplate>(template);
+
+        assert!(result.is_err());
+        assert!(matches!(result, Err(Error::UnknownChannel(_))));
+    }
+
+    #[tokio::test]
+    async fn test_fails_to_send_unknown_notification() {
+        let mut notifier = Notifier::<&'static str>::default();
+
+        let channel = TestChannel::default();
+
+        notifier.register_channel(channel.clone());
+
+        let notification = TestNotification::new(1, "first notification".to_string());
+        let contact = TestContact("Destination (1)".to_string());
+
+        let result = notifier
+            .send_message_to_contact(notification, contact)
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(
+            result,
+            Err(Error::Template(TemplateError::NotFound { .. }))
+        ));
     }
 }

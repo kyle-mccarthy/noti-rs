@@ -3,9 +3,9 @@ use lettre::{
     message::{Mailbox, MultiPart, SinglePart},
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
-use notifier::Error;
+use notifier::{provider::Error, Provider};
 
-use crate::{EmailAddress, EmailMessage, Provider};
+use crate::{EmailAddress, EmailMessage};
 
 pub struct SmtpProvider {
     transport: AsyncSmtpTransport<Tokio1Executor>,
@@ -35,22 +35,19 @@ impl SmtpProvider {
             builder.singlepart(SinglePart::html(message.contents().html().to_owned()))
         };
 
-        let email = result.map_err(|e| Error::Provider {
+        let email = result.map_err(|e| Error::Unknown {
             source: e.into(),
-            channel: "email",
+            channel_id: "email",
             provider_id: "smtp",
             context: Some("failed to build the lettre::Message"),
         })?;
 
-        self.transport
-            .send(email)
-            .await
-            .map_err(|e| Error::Provider {
-                source: e.into(),
-                channel: "email",
-                provider_id: "smtp",
-                context: Some("SMTP email provider failed to send the email"),
-            })?;
+        self.transport.send(email).await.map_err(|e| Error::Send {
+            source: e.into(),
+            channel_id: "email",
+            provider_id: "smtp",
+            context: Some("SMTP email provider failed to send the email"),
+        })?;
 
         Ok(())
     }
@@ -63,10 +60,10 @@ impl TryFrom<EmailAddress> for Mailbox {
         let email = addr
             .email()
             .parse::<lettre::Address>()
-            .map_err(|e| Error::Provider {
+            .map_err(|e| Error::Contact {
                 source: e.into(),
                 context: Some("The emaill address could not be convered into a lettre::Address"),
-                channel: "email",
+                channel_id: "email",
                 provider_id: "smtp",
             })?;
 
@@ -78,11 +75,13 @@ impl TryFrom<EmailAddress> for Mailbox {
 
 #[async_trait]
 impl Provider for SmtpProvider {
+    type Message = EmailMessage;
+
     fn id(&self) -> &'static str {
         "smtp"
     }
 
-    async fn send(&self, message: EmailMessage) -> Result<(), Error> {
+    async fn send(&self, message: Self::Message) -> Result<(), Error> {
         self.send(message).await
     }
 }

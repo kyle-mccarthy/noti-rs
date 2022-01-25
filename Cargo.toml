@@ -1,5 +1,7 @@
 [workspace]
+resolver = "2"
 members = [
     "crates/notifier",
-    "crates/notifier-email",
+    "crates/notifier-email"
 ]
+exclude = ["crates/noti"]

@@ -1,11 +1,11 @@
-use std::any::Any;
+use std::any::{Any, TypeId};
 
 use super::{
     engine::{RenderContext, TemplateEngine},
     registry::TemplateRegistry,
     TemplateError, TemplateId,
 };
-use crate::{channel::ChannelType, Id};
+use crate::{channel::ChannelType, Error, Id};
 
 #[derive(Default)]
 pub struct TemplateService<I: Id> {
@@ -35,12 +35,26 @@ impl<I: Id> TemplateService<I> {
 
     /// Get a reference to the template registered for the channel and
     /// notification.
-    pub fn get_template(
+    pub fn get_template<T: Any>(
         &self,
         notification_id: I,
         channel_type: ChannelType,
-    ) -> Option<&Box<dyn Any>> {
-        self.registry.get_template(notification_id, channel_type)
+    ) -> Result<&T, Error> {
+        let template = self
+            .registry
+            .get_template(notification_id, channel_type)
+            .ok_or_else(|| TemplateError::NotFound {
+                channel_type,
+                notification_id: notification_id.to_string(),
+            })?;
+
+        let template = template.downcast_ref::<T>().ok_or(Error::Downcast {
+            context: Some("Failed to downcast the template into T"),
+            found: (&*template).type_id(),
+            expected: TypeId::of::<T>(),
+        })?;
+
+        Ok(template)
     }
 
     pub fn engine(&self) -> &TemplateEngine {

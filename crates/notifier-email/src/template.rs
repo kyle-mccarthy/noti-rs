@@ -1,5 +1,5 @@
 use notifier::template::{
-    Error as TemplateError, Markup, RegisterTemplate, RenderTemplate, TemplateEngine, TemplateId,
+    TemplateError, Markup, TemplateEngine, TemplateId, TemplateService
 };
 
 use crate::EmailContents;
@@ -13,52 +13,52 @@ pub struct EmailTemplate<'a> {
     pub text: Option<&'a str>,
 }
 
-impl<'a> RegisterTemplate for EmailTemplate<'a> {
-    type Template = RegisteredEmailTemplate;
+// impl<'a> RegisterTemplate for EmailTemplate<'a> {
+//     type Template = RegisteredEmailTemplate;
 
-    fn register(&self, engine: &mut TemplateEngine) -> Result<Self::Template, TemplateError> {
-        let html = engine.register_template(&self.html.parse()?)?;
-        let subject = engine.register_template(self.subject)?;
+//     fn register(&self, engine: &mut TemplateEngine) -> Result<Self::Template, TemplateError> {
+//         let html = engine.register_template(&self.html.parse()?)?;
+//         let subject = engine.register_template(self.subject)?;
 
-        let text = if let Some(text) = self.text {
-            Some(engine.register_template(text)?)
-        } else {
-            None
-        };
+//         let text = if let Some(text) = self.text {
+//             Some(engine.register_template(text)?)
+//         } else {
+//             None
+//         };
 
-        Ok(RegisteredEmailTemplate {
-            html,
-            subject,
-            text,
-        })
-    }
-}
+//         Ok(RegisteredEmailTemplate {
+//             html,
+//             subject,
+//             text,
+//         })
+//     }
+// }
 
 pub struct RegisteredEmailTemplate {
-    subject: TemplateId,
-    html: TemplateId,
-    text: Option<TemplateId>,
+    pub(crate) subject: TemplateId,
+    pub(crate) html: TemplateId,
+    pub(crate) text: Option<TemplateId>,
 }
 
-impl RenderTemplate for RegisteredEmailTemplate {
-    type Message = EmailContents;
+// impl RenderTemplate for RegisteredEmailTemplate {
+//     type Message = EmailContents;
 
-    fn render<T: serde::Serialize>(
-        &self,
-        engine: &TemplateEngine,
-        data: &T,
-    ) -> Result<Self::Message, TemplateError> {
-        let ctx = engine.create_context(data)?;
+//     fn render<T: serde::Serialize>(
+//         &self,
+//         engine: &TemplateEngine,
+//         data: &T,
+//     ) -> Result<Self::Message, TemplateError> {
+//         let ctx = engine.create_context(data)?;
 
-        let html = engine.render(self.html, &ctx)?;
-        let subject = engine.render(self.subject, &ctx)?;
+//         let html = engine.render(self.html, &ctx)?;
+//         let subject = engine.render(self.subject, &ctx)?;
 
-        let text = if let Some(text) = self.text {
-            Some(engine.render(text, &ctx)?)
-        } else {
-            None
-        };
+//         let text = if let Some(text) = self.text {
+//             Some(engine.render(text, &ctx)?)
+//         } else {
+//             None
+//         };
 
-        Ok(EmailContents::new(subject, html, text))
-    }
-}
+//         Ok(EmailContents::new(subject, html, text))
+//     }
+// }
