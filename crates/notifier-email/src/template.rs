@@ -1,8 +1,4 @@
-use notifier::template::{
-    TemplateError, Markup, TemplateEngine, TemplateId, TemplateService
-};
-
-use crate::EmailContents;
+use notifier::template::{Markup, TemplateId};
 
 pub struct EmailTemplate<'a> {
     /// The template for the email's subject.
@@ -16,9 +12,10 @@ pub struct EmailTemplate<'a> {
 // impl<'a> RegisterTemplate for EmailTemplate<'a> {
 //     type Template = RegisteredEmailTemplate;
 
-//     fn register(&self, engine: &mut TemplateEngine) -> Result<Self::Template, TemplateError> {
-//         let html = engine.register_template(&self.html.parse()?)?;
-//         let subject = engine.register_template(self.subject)?;
+//     fn register(&self, engine: &mut TemplateEngine) -> Result<Self::Template,
+// TemplateError> {         let html =
+// engine.register_template(&self.html.parse()?)?;         let subject =
+// engine.register_template(self.subject)?;
 
 //         let text = if let Some(text) = self.text {
 //             Some(engine.register_template(text)?)

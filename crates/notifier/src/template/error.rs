@@ -1,6 +1,5 @@
-use crate::channel::ChannelType;
-
 use super::{markup::MarkupType, TemplateId};
+use crate::channel::ChannelType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

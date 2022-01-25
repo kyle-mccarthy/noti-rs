@@ -159,7 +159,7 @@ mod test {
     fn create_notifier(provider: TestProvider) -> Notifier<&'static str> {
         let mut notifier = Notifier::new();
 
-        let mut channel = EmailChannel::new(
+        let channel = EmailChannel::new(
             provider,
             Options::new(
                 EmailAddress::new("sender@test.com", None),

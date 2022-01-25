@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EmailAddress {
@@ -8,7 +8,10 @@ pub struct EmailAddress {
 
 impl EmailAddress {
     pub fn new<E: ToString>(email: E, name: Option<String>) -> Self {
-        Self { email: email.to_string(), name }
+        Self {
+            email: email.to_string(),
+            name,
+        }
     }
 
     pub fn name(&self) -> Option<&str> {

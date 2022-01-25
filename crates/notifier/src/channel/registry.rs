@@ -57,7 +57,6 @@ impl<I: Id> ChannelRegistry<I> {
         None
     }
 
-
     // pub fn get_channel_by_message<M: M()
 
     pub fn get(&self, channel_type: ChannelType) -> Option<&dyn DynChannel<I>> {

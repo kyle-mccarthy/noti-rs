@@ -1,4 +1,4 @@
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use notifier::{provider::Error, Provider};

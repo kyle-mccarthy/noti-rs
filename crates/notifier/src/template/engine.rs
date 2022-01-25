@@ -15,7 +15,9 @@ impl RenderContext {
 
     /// Create the rendering context from the data
     pub fn with_data<T: Serialize>(data: &T) -> Result<Self, TemplateError> {
-        Ok(Self(liquid::to_object(data).map_err(TemplateError::InvalidData)?))
+        Ok(Self(
+            liquid::to_object(data).map_err(TemplateError::InvalidData)?,
+        ))
     }
 }
 
@@ -50,7 +52,10 @@ impl TemplateEngine {
 
     /// Render the template to a string using the context's data
     pub fn render(&self, id: TemplateId, ctx: &RenderContext) -> Result<String, TemplateError> {
-        let template = self.templates.get(&id).ok_or(TemplateError::UnknownTemplate(id))?;
+        let template = self
+            .templates
+            .get(&id)
+            .ok_or(TemplateError::UnknownTemplate(id))?;
 
         template.render(&ctx.0).map_err(TemplateError::Render)
     }
